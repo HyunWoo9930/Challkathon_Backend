@@ -53,10 +53,14 @@ public class SecurityConfig {
 			.authorizeHttpRequests(authorizeRequests -> authorizeRequests
 				.requestMatchers("/", "/**").permitAll()
 				.requestMatchers("/api/**").permitAll()
-				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()  // Swagger URL 허용
+				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+					.requestMatchers("/", "/oauth/**", "/login/**").permitAll()
 				.anyRequest().authenticated()
 			)
+			.httpBasic(AbstractHttpConfigurer::disable)
+			.formLogin(AbstractHttpConfigurer::disable)
 			.oauth2Login(oauth2 -> oauth2
+				.loginPage("/login")
 				.userInfoEndpoint(userInfo -> userInfo
 					.userService(customUserDetailsService)
 				)
