@@ -19,7 +19,8 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider tokenProvider;
-    private final String redirectUri = "/";
+    // private final String redirectUri = "https://mini1team.lion.it.kr/api/auth/success";
+    private final String redirectUri = "http://localhost:3000";
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -34,23 +35,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // Generate refresh token
         String refreshToken = tokenProvider.generateRefreshToken(user);
 
-        // Create a cookie with the access token
-        Cookie accessTokenCookie = new Cookie("access_token", accessToken);
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setMaxAge(900); // 15 minutes (matching the token expiration)
+        // Build the redirect URL with tokens as query parameters
+        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
+                .queryParam("access_token", accessToken)
+                .queryParam("refresh_token", refreshToken)
+                .build().toUriString();
 
-        // Create a cookie with the refresh token
-        Cookie refreshTokenCookie = new Cookie("refresh_token", refreshToken);
-        refreshTokenCookie.setPath("/api/auth/refresh"); // Only sent to refresh endpoint
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setMaxAge(604800); // 7 days (matching the token expiration)
-
-        // Add the cookies to the response
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
-
-        // Redirect to the frontend without the token in the URL
-        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+        // Redirect to the frontend with tokens as query parameters
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }
