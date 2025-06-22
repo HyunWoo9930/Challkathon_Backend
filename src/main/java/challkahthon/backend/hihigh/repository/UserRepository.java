@@ -8,4 +8,6 @@ import challkahthon.backend.hihigh.domain.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findByName(String userName);
+
+	Optional<User> findByLoginId(String loginId);
 }

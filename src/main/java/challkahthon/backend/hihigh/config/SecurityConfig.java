@@ -21,6 +21,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import challkahthon.backend.hihigh.jwt.JwtAuthenticationEntryPoint;
 import challkahthon.backend.hihigh.jwt.JwtAuthenticationFilter;
+import challkahthon.backend.hihigh.jwt.OAuth2AuthenticationSuccessHandler;
+import challkahthon.backend.hihigh.service.CustomUserDetailsService;
 
 @Configuration
 @EnableWebSecurity
@@ -28,11 +30,17 @@ public class SecurityConfig {
 
 	private final JwtAuthenticationEntryPoint unauthorizedHandler;
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final CustomUserDetailsService customUserDetailsService;
+	private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
 	public SecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler,
-		JwtAuthenticationFilter jwtAuthenticationFilter) {
+		JwtAuthenticationFilter jwtAuthenticationFilter,
+		CustomUserDetailsService customUserDetailsService,
+		OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
 		this.unauthorizedHandler = unauthorizedHandler;
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+		this.customUserDetailsService = customUserDetailsService;
+		this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
 	}
 
 	@Bean
@@ -47,6 +55,12 @@ public class SecurityConfig {
 				.requestMatchers("/api/**").permitAll()
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()  // Swagger URL 허용
 				.anyRequest().authenticated()
+			)
+			.oauth2Login(oauth2 -> oauth2
+				.userInfoEndpoint(userInfo -> userInfo
+					.userService(customUserDetailsService)
+				)
+				.successHandler(oAuth2AuthenticationSuccessHandler)
 			);
 
 		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -68,7 +82,7 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("*"));
+		configuration.setAllowedOrigins(List.of("http://localhost:5000", "http://localhost:8080"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setAllowCredentials(true);
