@@ -28,10 +28,17 @@ public class User {
 	private String provider;
 	// providerId : 구굴 로그인 한 유저의 고유 ID가 들어감
 	private String providerId;
+	// 사용자 관심사
+	private String interests;
+	// 사용자 목표
+	private String goals;
+	// 사용자 희망직종
+	private String desiredOccupation;
 
 	@Builder
 	public User(String loginId, String password, UserRole userRole, String name, Gender gender, String birthYear,
-		Boolean isPrivateInformAgreed, String provider, String providerId) {
+		Boolean isPrivateInformAgreed, String provider, String providerId, String interests, String goals, 
+		String desiredOccupation) {
 		this.loginId = loginId;
 		this.userRole = userRole;
 		this.name = name;
@@ -41,5 +48,8 @@ public class User {
 		this.isPrivateInformAgreed = isPrivateInformAgreed;
 		this.provider = provider;
 		this.providerId = providerId;
+		this.interests = interests;
+		this.goals = goals;
+		this.desiredOccupation = desiredOccupation;
 	}
 }

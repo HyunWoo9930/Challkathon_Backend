@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider tokenProvider;
-    // private final String redirectUri = "https://mini1team.lion.it.kr/api/auth/success";
     private final String redirectUri = "http://localhost:3000";
 
     @Override

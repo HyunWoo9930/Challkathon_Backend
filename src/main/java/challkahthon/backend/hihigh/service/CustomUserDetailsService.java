@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import challkahthon.backend.hihigh.domain.entity.User;
 import challkahthon.backend.hihigh.domain.enums.UserRole;
+import challkahthon.backend.hihigh.dto.UserUpdateDto;
 import challkahthon.backend.hihigh.jwt.CustomOauth2UserDetails;
 import challkahthon.backend.hihigh.jwt.OAuth2UserInfo;
 import challkahthon.backend.hihigh.jwt.google.GoogleUserDetails;
@@ -26,6 +27,24 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	public User findByUserName(String userName) {
 		return userRepository.findByName(userName).orElse(null);
+	}
+
+	/**
+	 * 사용자의 추가 정보(관심사, 목표, 희망직종)를 업데이트합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @param updateDto 업데이트할 사용자 정보
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User updateUserInfo(String userName, UserUpdateDto updateDto) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setInterests(updateDto.getInterests());
+			user.setGoals(updateDto.getGoals());
+			user.setDesiredOccupation(updateDto.getDesiredOccupation());
+			return userRepository.save(user);
+		}
+		return null;
 	}
 
 	@Override
