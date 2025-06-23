@@ -449,4 +449,52 @@ public class AuthController {
 
         return ResponseEntity.ok().body(updatedUser);
     }
+
+    @Operation(
+        summary = "계정 삭제", 
+        description = "사용자 계정을 완전히 삭제합니다. 로그인된 사용자만 사용 가능합니다. 삭제 후에는 복구할 수 없습니다."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", 
+            description = "성공적으로 계정이 삭제됨",
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                mediaType = "application/json",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                mediaType = "application/json",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401", 
+            description = "인증되지 않은 사용자",
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                mediaType = "application/json",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+            )
+        )
+    })
+    @DeleteMapping("/account")
+    public ResponseEntity<?> deleteAccount() {
+        // 현재 인증된 사용자 정보 가져오기
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+        }
+
+        String username = authentication.getName();
+        boolean deleted = userDetailsService.deleteUser(username);
+
+        if (!deleted) {
+            return ResponseEntity.badRequest().body("사용자를 찾을 수 없거나 삭제할 수 없습니다.");
+        }
+
+        return ResponseEntity.ok().body("계정이 성공적으로 삭제되었습니다.");
+    }
 }

@@ -143,6 +143,21 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 		return null;
 	}
 
+	/**
+	 * 사용자 계정을 삭제합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @return 삭제 성공 여부
+	 */
+	public boolean deleteUser(String userName) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			userRepository.delete(user);
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
 		OAuth2User oAuth2User = super.loadUser(userRequest);
