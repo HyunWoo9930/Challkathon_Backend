@@ -27,9 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	private final UserRepository userRepository;
+	private final ChatService chatService;
 
 	public User findByUserName(String userName) {
 		return userRepository.findByName(userName).orElse(null);
+	}
+
+	public User findByLoginId(String loginId) {
+		return userRepository.findByLoginId(loginId).orElse(null);
 	}
 
 	/**
@@ -189,6 +194,9 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 				.userRole(UserRole.MEMBER)
 				.build();
 			userRepository.save(user);
+
+			// Create a chat room for the new user
+			chatService.createChat(name);
 		} else {
 			user = findMember.get();
 		}

@@ -33,9 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		String jwt = getJwtFromRequest(request);
 
 		if (jwt != null && tokenProvider.validateToken(jwt)) {
-			String userId = tokenProvider.getUserIdFromJWT(jwt);
+			String loginId = tokenProvider.getUserIdFromJWT(jwt);
 
-			User user = customUserDetailsService.findByUserName(userId);
+			User user = customUserDetailsService.findByLoginId(loginId);
 			if (user != null) {
 				UserDetails userDetails = new CustomOauth2UserDetails(user, null);
 				JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails, null,
@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			} else {
-				throw new UsernameNotFoundException("User not found with username: " + userId);
+				throw new UsernameNotFoundException("User not found with loginId: " + loginId);
 			}
 		}
 

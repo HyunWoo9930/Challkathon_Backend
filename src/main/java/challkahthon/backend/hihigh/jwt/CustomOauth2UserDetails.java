@@ -40,7 +40,7 @@ public class CustomOauth2UserDetails implements UserDetails, OAuth2User {
 
 	@Override
 	public String getUsername() {
-		return user.getName();
+		return user.getLoginId();
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class CustomOauth2UserDetails implements UserDetails, OAuth2User {
 
 	@Override
 	public String getName() {
-		return user.getName();
+		return user.getLoginId();
 	}
 
 	public User getUser() {

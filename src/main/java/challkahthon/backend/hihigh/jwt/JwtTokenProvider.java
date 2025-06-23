@@ -33,7 +33,7 @@ public class JwtTokenProvider {
 		Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
 		return Jwts.builder()
-			.setSubject(user.getName())
+			.setSubject(user.getLoginId())
 			.setIssuedAt(now)
 			.setExpiration(expiryDate)
 			.claim("tokenType", "access")
@@ -60,7 +60,7 @@ public class JwtTokenProvider {
 		Date expiryDate = new Date(now.getTime() + refreshExpirationInMs);
 
 		return Jwts.builder()
-			.setSubject(user.getName())
+			.setSubject(user.getLoginId())
 			.setIssuedAt(now)
 			.setExpiration(expiryDate)
 			.claim("tokenType", "refresh")
