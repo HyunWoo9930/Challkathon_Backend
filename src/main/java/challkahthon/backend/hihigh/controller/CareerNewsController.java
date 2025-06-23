@@ -349,6 +349,167 @@ public class CareerNewsController {
         return ResponseEntity.ok(health);
     }
     
+    // ===== AI 분석 관련 엔드포인트들 =====
+    
+    @Operation(
+        summary = "AI 분석 미처리 뉴스 일괄 분석",
+        description = "AI 분석이 되지 않은 뉴스들을 일괄적으로 분석합니다."
+    )
+    @PostMapping("/ai/analyze-unprocessed")
+    public ResponseEntity<Map<String, Object>> analyzeUnprocessedNews() {
+        int count = careerNewsService.analyzeUnanalyzedNews();
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "AI 분석이 완료되었습니다.");
+        result.put("analyzedCount", count);
+        result.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.ok(result);
+    }
+    
+    @Operation(
+        summary = "카테고리 자동 재분류",
+        description = "AI를 사용해서 모든 뉴스의 카테고리를 재분류합니다."
+    )
+    @PostMapping("/ai/reclassify-categories")
+    public ResponseEntity<Map<String, Object>> reclassifyCategories() {
+        int count = careerNewsService.autoReclassifyCategories();
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "카테고리 재분류가 완료되었습니다.");
+        result.put("reclassifiedCount", count);
+        result.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.ok(result);
+    }
+    
+    @Operation(
+        summary = "키워드 재추출",
+        description = "AI를 사용해서 모든 뉴스의 키워드를 재추출합니다."
+    )
+    @PostMapping("/ai/reextract-keywords")
+    public ResponseEntity<Map<String, Object>> reextractKeywords() {
+        int count = careerNewsService.reextractKeywords();
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "키워드 재추출이 완료되었습니다.");
+        result.put("updatedCount", count);
+        result.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.ok(result);
+    }
+    
+    @Operation(
+        summary = "AI 분석 통계 조회",
+        description = "AI 분석 결과에 대한 통계를 조회합니다."
+    )
+    @GetMapping("/ai/statistics")
+    public ResponseEntity<Map<String, Object>> getAIStatistics() {
+        Map<String, Object> stats = careerNewsService.getAIAnalysisStatistics();
+        return ResponseEntity.ok(stats);
+    }
+    
+    @Operation(
+        summary = "고관련성 뉴스 조회",
+        description = "AI가 판단한 관련성 점수가 높은 뉴스들을 조회합니다."
+    )
+    @GetMapping("/ai/high-relevance")
+    public ResponseEntity<List<CareerNewsDto>> getHighRelevanceNews(
+            @Parameter(description = "최소 관련성 점수 (0.0 ~ 1.0)")
+            @RequestParam(defaultValue = "0.7") double minScore) {
+        List<CareerNews> newsList = careerNewsService.getHighRelevanceNews(minScore);
+        List<CareerNewsDto> newsListDto = newsList.stream()
+                .map(CareerNewsDto::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(newsListDto);
+    }
+    
+    @Operation(
+        summary = "카테고리 일치 뉴스 조회",
+        description = "AI가 카테고리가 정확하다고 판단한 뉴스들을 조회합니다."
+    )
+    @GetMapping("/ai/category-matched")
+    public ResponseEntity<List<CareerNewsDto>> getCategoryMatchedNews(
+            @Parameter(description = "카테고리")
+            @RequestParam String category) {
+        List<CareerNews> newsList = careerNewsService.getCategoryMatchedNews(category);
+        List<CareerNewsDto> newsListDto = newsList.stream()
+                .map(CareerNewsDto::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(newsListDto);
+    }
+    
+    @Operation(
+        summary = "향상된 키워드 검색",
+        description = "AI가 추출한 키워드를 포함한 향상된 검색을 수행합니다."
+    )
+    @GetMapping("/ai/search-enhanced")
+    public ResponseEntity<List<CareerNewsDto>> searchEnhanced(
+            @Parameter(description = "검색 키워드")
+            @RequestParam String keyword) {
+        List<CareerNews> newsList = careerNewsService.searchByKeywordEnhanced(keyword);
+        List<CareerNewsDto> newsListDto = newsList.stream()
+                .map(CareerNewsDto::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(newsListDto);
+    }
+    
+    @Operation(
+        summary = "AI 분석 테스트",
+        description = "특정 텍스트에 대해 AI 분석을 테스트합니다."
+    )
+    @PostMapping("/ai/test-analysis")
+    public ResponseEntity<Map<String, Object>> testAIAnalysis(
+            @Parameter(description = "기사 제목")
+            @RequestParam String title,
+            @Parameter(description = "기사 내용")
+            @RequestParam String content,
+            @Parameter(description = "타겟 카테고리")
+            @RequestParam(defaultValue = "general") String category) {
+        
+        Map<String, Object> result = careerNewsService.testAIAnalysis(title, content, category);
+        return ResponseEntity.ok(result);
+    }
+    
+    @Operation(
+        summary = "뉴스 AI 분석 정보 조회",
+        description = "특정 뉴스의 AI 분석 결과를 조회합니다."
+    )
+    @GetMapping("/{id}/ai-analysis")
+    public ResponseEntity<Map<String, Object>> getNewsAIAnalysis(
+            @Parameter(description = "뉴스 ID")
+            @PathVariable Long id) {
+        CareerNews news = careerNewsService.getNewsById(id);
+        if (news == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Map<String, Object> analysis = new HashMap<>();
+        analysis.put("id", news.getId());
+        analysis.put("title", news.getTitle());
+        analysis.put("category", news.getCategory());
+        analysis.put("isAiAnalyzed", news.getIsAiAnalyzed());
+        analysis.put("isRelevant", news.getIsRelevant());
+        analysis.put("categoryMatch", news.getCategoryMatch());
+        analysis.put("relevanceScore", news.getRelevanceScore());
+        analysis.put("suggestedCategory", news.getSuggestedCategory());
+        analysis.put("keywords", news.getKeywords());
+        analysis.put("analysisReason", news.getAnalysisReason());
+        
+        // 분석 결과 해석
+        String interpretation = "";
+        if (news.getIsAiAnalyzed() != null && news.getIsAiAnalyzed()) {
+            if (news.getIsRelevant() != null && news.getIsRelevant()) {
+                if (news.getCategoryMatch() != null && news.getCategoryMatch()) {
+                    interpretation = "적절한 카테고리의 관련성 높은 기사";
+                } else {
+                    interpretation = "관련성은 있지만 카테고리가 부정확할 수 있는 기사";
+                }
+            } else {
+                interpretation = "개발/커리어와 관련성이 낮은 기사";
+            }
+        } else {
+            interpretation = "아직 AI 분석이 되지 않은 기사";
+        }
+        analysis.put("interpretation", interpretation);
+        
+        return ResponseEntity.ok(analysis);
+    }
+    
     // Helper methods
     private int calculateTranslationProgress(boolean hasTitle, boolean hasSummary, boolean hasContent) {
         int progress = 0;

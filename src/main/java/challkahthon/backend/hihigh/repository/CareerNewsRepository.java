@@ -85,4 +85,59 @@ public interface CareerNewsRepository extends JpaRepository<CareerNews, Long> {
     @Query("SELECT cn FROM CareerNews cn WHERE cn.source = :source " +
            "ORDER BY cn.publishedDate DESC")
     List<CareerNews> findBySourceOrderByPublishedDateDesc(@Param("source") String source);
+    
+    // AI 분석 관련 메서드들
+    
+    /**
+     * AI 분석이 되지 않은 뉴스 조회
+     */
+    @Query("SELECT cn FROM CareerNews cn WHERE cn.isAiAnalyzed IS NULL OR cn.isAiAnalyzed = false")
+    List<CareerNews> findUnanalyzedNews();
+    
+    /**
+     * 관련성이 있다고 판단된 뉴스만 조회
+     */
+    @Query("SELECT cn FROM CareerNews cn WHERE cn.isRelevant = true ORDER BY cn.publishedDate DESC")
+    List<CareerNews> findRelevantNews();
+    
+    /**
+     * 카테고리가 일치하는 뉴스만 조회
+     */
+    @Query("SELECT cn FROM CareerNews cn WHERE cn.categoryMatch = true AND cn.category = :category " +
+           "ORDER BY cn.publishedDate DESC")
+    List<CareerNews> findCategoryMatchedNews(@Param("category") String category);
+    
+    /**
+     * 관련성 점수가 특정 점수 이상인 뉴스 조회
+     */
+    @Query("SELECT cn FROM CareerNews cn WHERE cn.relevanceScore >= :minScore " +
+           "ORDER BY cn.relevanceScore DESC, cn.publishedDate DESC")
+    List<CareerNews> findHighRelevanceNews(@Param("minScore") Double minScore);
+    
+    /**
+     * 특정 키워드가 포함된 뉴스 조회 (향상된 버전)
+     */
+    @Query("SELECT cn FROM CareerNews cn WHERE " +
+           "cn.keywords LIKE %:keyword% OR cn.title LIKE %:keyword% OR " +
+           "cn.originalContent LIKE %:keyword% OR cn.translatedContent LIKE %:keyword% " +
+           "ORDER BY cn.relevanceScore DESC, cn.publishedDate DESC")
+    List<CareerNews> findByKeywordEnhanced(@Param("keyword") String keyword);
+    
+    /**
+     * AI가 제안한 카테고리별 통계 조회
+     */
+    @Query("SELECT cn.suggestedCategory, COUNT(cn) FROM CareerNews cn " +
+           "WHERE cn.suggestedCategory IS NOT NULL GROUP BY cn.suggestedCategory")
+    List<Object[]> countBySuggestedCategory();
+    
+    /**
+     * 분석 상태별 통계 조회
+     */
+    @Query("SELECT " +
+           "SUM(CASE WHEN cn.isAiAnalyzed = true THEN 1 ELSE 0 END) as analyzed, " +
+           "SUM(CASE WHEN cn.isRelevant = true THEN 1 ELSE 0 END) as relevant, " +
+           "SUM(CASE WHEN cn.categoryMatch = true THEN 1 ELSE 0 END) as categoryMatched, " +
+           "COUNT(cn) as total " +
+           "FROM CareerNews cn")
+    Object[] getAnalysisStatistics();
 }

@@ -38,6 +38,19 @@ public class CareerNews {
     
     private String keywords;
     
+    // AI 분석 결과 필드들
+    private Boolean isAiAnalyzed;
+    
+    private Boolean isRelevant;
+    
+    private Boolean categoryMatch;
+    
+    private Double relevanceScore;
+    
+    private String suggestedCategory;
+    
+    private String analysisReason;
+    
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String originalContent;

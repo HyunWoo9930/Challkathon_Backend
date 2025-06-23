@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -24,6 +27,7 @@ public class CareerNewsService {
     private final WebCrawlerService webCrawlerService;
     private final TranslationService translationService;
     private final SummarizationService summarizationService;
+    private final AIAnalysisService aiAnalysisService;
     
     /**
      * Get the latest career news by category
@@ -56,7 +60,7 @@ public class CareerNewsService {
     }
     
     /**
-     * Process a single news article: 제목/요약 우선 번역 + 비동기 본문 번역
+     * Process a single news article: AI 분석 + 제목/요약 우선 번역 + 비동기 본문 번역
      * @param news The news article to process
      * @return The processed news article
      */
@@ -71,7 +75,50 @@ public class CareerNewsService {
                     news.getTitle().substring(0, Math.min(50, news.getTitle().length())), 
                     news.getOriginalContent().length());
             
-            // 1. 제목 번역 (동기 - 즉시 번역)
+            // 1. AI 분석 (카테고리 검증 및 키워드 추출)
+            if (news.getIsAiAnalyzed() == null || !news.getIsAiAnalyzed()) {
+                log.info("Starting AI analysis...");
+                AIAnalysisService.AIAnalysisResult aiResult = aiAnalysisService.analyzeArticle(
+                        news.getTitle(), 
+                        news.getOriginalContent(), 
+                        news.getCategory()
+                );
+                
+                // AI 분석 결과를 엔티티에 저장
+                news.setIsAiAnalyzed(true);
+                news.setIsRelevant(aiResult.isRelevant());
+                news.setCategoryMatch(aiResult.isCategoryMatch());
+                news.setRelevanceScore(aiResult.getRelevanceScore());
+                news.setSuggestedCategory(aiResult.getSuggestedCategory());
+                news.setAnalysisReason(aiResult.getReason());
+                
+                // 키워드 저장 (기존 키워드와 AI 키워드 결합)
+                List<String> aiKeywords = aiResult.getKeywords();
+                if (!aiKeywords.isEmpty()) {
+                    String existingKeywords = news.getKeywords() != null ? news.getKeywords() : "";
+                    String combinedKeywords = combineKeywords(existingKeywords, aiKeywords);
+                    news.setKeywords(combinedKeywords);
+                }
+                
+                // AI가 제안한 카테고리가 다르고 더 적절하다면 카테고리 업데이트 고려
+                if (!aiResult.isCategoryMatch() && aiResult.getRelevanceScore() > 0.7) {
+                    log.info("AI suggests different category: {} -> {}", 
+                            news.getCategory(), aiResult.getSuggestedCategory());
+                    // 카테고리를 AI 제안으로 변경할지는 정책에 따라 결정
+                    // news.setCategory(aiResult.getSuggestedCategory());
+                }
+                
+                log.info("AI analysis completed: {}", aiResult);
+            }
+            
+            // 2. 관련성이 낮은 기사는 처리 건너뛰기
+            if (news.getIsRelevant() != null && !news.getIsRelevant()) {
+                log.info("Skipping irrelevant article: {}", news.getTitle());
+                news.setUpdatedAt(LocalDateTime.now());
+                return careerNewsRepository.save(news);
+            }
+            
+            // 3. 제목 번역 (동기 - 즉시 번역)
             if ("en".equals(news.getLanguage()) && news.getTitle() != null) {
                 log.info("Translating title...");
                 String translatedTitle = translationService.translateTitle(news.getTitle());
@@ -81,7 +128,7 @@ public class CareerNewsService {
                 }
             }
             
-            // 2. 요약 생성
+            // 4. 요약 생성
             if (news.getSummary() == null || news.getSummary().isEmpty()) {
                 log.info("Generating summary...");
                 String contentToSummarize = news.getOriginalContent();
@@ -91,7 +138,7 @@ public class CareerNewsService {
                 log.info("Summary completed. Summary length: {}", summary.length());
             }
             
-            // 3. 요약 번역 (동기 - 즉시 번역)
+            // 5. 요약 번역 (동기 - 즉시 번역)
             if ("en".equals(news.getLanguage()) && news.getSummary() != null) {
                 log.info("Translating summary...");
                 String translatedSummary = translationService.translateSummary(news.getSummary());
@@ -101,11 +148,11 @@ public class CareerNewsService {
                 }
             }
             
-            // 4. 먼저 저장 (제목과 요약은 번역된 상태)
+            // 6. 먼저 저장 (제목과 요약은 번역된 상태, AI 분석 완료)
             news.setUpdatedAt(LocalDateTime.now());
             CareerNews savedNews = careerNewsRepository.save(news);
             
-            // 5. 비동기로 본문 번역 시작 (백그라운드에서 처리)
+            // 7. 비동기로 본문 번역 시작 (백그라운드에서 처리)
             if ("en".equals(news.getLanguage()) && news.getOriginalContent() != null &&
                 (news.getTranslatedContent() == null || news.getTranslatedContent().isEmpty())) {
                 
@@ -125,7 +172,7 @@ public class CareerNewsService {
                 });
             }
             
-            log.info("News processing completed (title & summary translated, content translation in progress)");
+            log.info("News processing completed (AI analyzed, title & summary translated, content translation in progress)");
             return savedNews;
             
         } catch (Exception e) {
@@ -288,6 +335,263 @@ public class CareerNewsService {
         sources.put("lastUpdated", LocalDateTime.now());
         
         return sources;
+    }
+    
+    /**
+     * AI 분석이 되지 않은 뉴스들을 일괄 분석
+     * @return 분석된 뉴스 수
+     */
+    @Transactional
+    public int analyzeUnanalyzedNews() {
+        List<CareerNews> unanalyzedNews = careerNewsRepository.findUnanalyzedNews();
+        int count = 0;
+        
+        for (CareerNews news : unanalyzedNews) {
+            try {
+                log.info("Analyzing news: {}", news.getTitle().substring(0, Math.min(50, news.getTitle().length())));
+                
+                AIAnalysisService.AIAnalysisResult aiResult = aiAnalysisService.analyzeArticle(
+                        news.getTitle(), 
+                        news.getOriginalContent(), 
+                        news.getCategory()
+                );
+                
+                // AI 분석 결과 저장
+                news.setIsAiAnalyzed(true);
+                news.setIsRelevant(aiResult.isRelevant());
+                news.setCategoryMatch(aiResult.isCategoryMatch());
+                news.setRelevanceScore(aiResult.getRelevanceScore());
+                news.setSuggestedCategory(aiResult.getSuggestedCategory());
+                news.setAnalysisReason(aiResult.getReason());
+                
+                // 키워드 업데이트
+                List<String> aiKeywords = aiResult.getKeywords();
+                if (!aiKeywords.isEmpty()) {
+                    String existingKeywords = news.getKeywords() != null ? news.getKeywords() : "";
+                    String combinedKeywords = combineKeywords(existingKeywords, aiKeywords);
+                    news.setKeywords(combinedKeywords);
+                }
+                
+                news.setUpdatedAt(LocalDateTime.now());
+                careerNewsRepository.save(news);
+                count++;
+                
+                // API 호출 제한을 위한 딜레이
+                Thread.sleep(1000);
+                
+            } catch (Exception e) {
+                log.error("Error analyzing news (ID: {}): {}", news.getId(), e.getMessage());
+            }
+        }
+        
+        log.info("AI analysis completed for {} news articles", count);
+        return count;
+    }
+    
+    /**
+     * 카테고리 자동 재분류
+     * @return 재분류된 뉴스 수
+     */
+    @Transactional
+    public int autoReclassifyCategories() {
+        List<CareerNews> allNews = careerNewsRepository.findAll();
+        int count = 0;
+        
+        for (CareerNews news : allNews) {
+            try {
+                String suggestedCategory = aiAnalysisService.autoClassifyCategory(
+                        news.getTitle(), 
+                        news.getOriginalContent()
+                );
+                
+                if (!suggestedCategory.equals(news.getCategory())) {
+                    log.info("Reclassifying news: {} -> {}", news.getCategory(), suggestedCategory);
+                    news.setSuggestedCategory(suggestedCategory);
+                    news.setUpdatedAt(LocalDateTime.now());
+                    careerNewsRepository.save(news);
+                    count++;
+                }
+                
+                // API 호출 제한을 위한 딜레이
+                Thread.sleep(1000);
+                
+            } catch (Exception e) {
+                log.error("Error reclassifying news (ID: {}): {}", news.getId(), e.getMessage());
+            }
+        }
+        
+        log.info("Category reclassification completed for {} news articles", count);
+        return count;
+    }
+    
+    /**
+     * 키워드 재추출
+     * @return 키워드가 업데이트된 뉴스 수
+     */
+    @Transactional
+    public int reextractKeywords() {
+        List<CareerNews> allNews = careerNewsRepository.findAll();
+        int count = 0;
+        
+        for (CareerNews news : allNews) {
+            try {
+                List<String> newKeywords = aiAnalysisService.extractKeywords(
+                        news.getTitle(), 
+                        news.getOriginalContent()
+                );
+                
+                if (!newKeywords.isEmpty()) {
+                    String keywordsString = String.join(", ", newKeywords);
+                    news.setKeywords(keywordsString);
+                    news.setUpdatedAt(LocalDateTime.now());
+                    careerNewsRepository.save(news);
+                    count++;
+                }
+                
+                // API 호출 제한을 위한 딜레이
+                Thread.sleep(1000);
+                
+            } catch (Exception e) {
+                log.error("Error extracting keywords for news (ID: {}): {}", news.getId(), e.getMessage());
+            }
+        }
+        
+        log.info("Keyword extraction completed for {} news articles", count);
+        return count;
+    }
+    
+    /**
+     * AI 분석 통계 조회
+     */
+    public Map<String, Object> getAIAnalysisStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        try {
+            // 전체 분석 통계
+            Object[] analysisStats = careerNewsRepository.getAnalysisStatistics();
+            if (analysisStats != null && analysisStats.length >= 4) {
+                stats.put("totalAnalyzed", ((Number) analysisStats[0]).longValue());
+                stats.put("totalRelevant", ((Number) analysisStats[1]).longValue());
+                stats.put("totalCategoryMatched", ((Number) analysisStats[2]).longValue());
+                stats.put("totalArticles", ((Number) analysisStats[3]).longValue());
+            }
+            
+            // 제안 카테고리별 통계
+            List<Object[]> suggestedCategoryStats = careerNewsRepository.countBySuggestedCategory();
+            Map<String, Long> suggestedCategories = new HashMap<>();
+            for (Object[] result : suggestedCategoryStats) {
+                suggestedCategories.put((String) result[0], ((Number) result[1]).longValue());
+            }
+            stats.put("suggestedCategories", suggestedCategories);
+            
+            // 관련성 점수 분포
+            List<CareerNews> relevantNews = careerNewsRepository.findRelevantNews();
+            Map<String, Integer> scoreDistribution = new HashMap<>();
+            scoreDistribution.put("high (0.8-1.0)", 0);
+            scoreDistribution.put("medium (0.5-0.8)", 0);
+            scoreDistribution.put("low (0.0-0.5)", 0);
+            
+            for (CareerNews news : relevantNews) {
+                if (news.getRelevanceScore() != null) {
+                    double score = news.getRelevanceScore();
+                    if (score >= 0.8) {
+                        scoreDistribution.put("high (0.8-1.0)", scoreDistribution.get("high (0.8-1.0)") + 1);
+                    } else if (score >= 0.5) {
+                        scoreDistribution.put("medium (0.5-0.8)", scoreDistribution.get("medium (0.5-0.8)") + 1);
+                    } else {
+                        scoreDistribution.put("low (0.0-0.5)", scoreDistribution.get("low (0.0-0.5)") + 1);
+                    }
+                }
+            }
+            stats.put("relevanceScoreDistribution", scoreDistribution);
+            
+        } catch (Exception e) {
+            log.error("Error getting AI analysis statistics: {}", e.getMessage());
+            stats.put("error", "통계 조회 중 오류 발생: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * 관련성이 높은 뉴스만 조회
+     */
+    public List<CareerNews> getHighRelevanceNews(double minScore) {
+        return careerNewsRepository.findHighRelevanceNews(minScore);
+    }
+    
+    /**
+     * 카테고리가 일치하는 뉴스만 조회
+     */
+    public List<CareerNews> getCategoryMatchedNews(String category) {
+        return careerNewsRepository.findCategoryMatchedNews(category);
+    }
+    
+    /**
+     * 향상된 키워드 검색
+     */
+    public List<CareerNews> searchByKeywordEnhanced(String keyword) {
+        return careerNewsRepository.findByKeywordEnhanced(keyword);
+    }
+    
+    /**
+     * 기존 키워드와 AI 키워드를 결합
+     */
+    private String combineKeywords(String existingKeywords, List<String> aiKeywords) {
+        Set<String> keywordSet = new HashSet<>();
+        
+        // 기존 키워드 추가
+        if (existingKeywords != null && !existingKeywords.trim().isEmpty()) {
+            String[] existing = existingKeywords.split(",");
+            for (String keyword : existing) {
+                String trimmed = keyword.trim().toLowerCase();
+                if (!trimmed.isEmpty()) {
+                    keywordSet.add(trimmed);
+                }
+            }
+        }
+        
+        // AI 키워드 추가
+        for (String aiKeyword : aiKeywords) {
+            String trimmed = aiKeyword.trim().toLowerCase();
+            if (!trimmed.isEmpty()) {
+                keywordSet.add(trimmed);
+            }
+        }
+        
+        // 최대 10개로 제한하고 결합
+        return keywordSet.stream()
+                .limit(10)
+                .collect(Collectors.joining(", "));
+    }
+    
+    /**
+     * AI 분석 테스트
+     */
+    public Map<String, Object> testAIAnalysis(String title, String content, String category) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            AIAnalysisService.AIAnalysisResult aiResult = aiAnalysisService.analyzeArticle(title, content, category);
+            
+            result.put("title", title);
+            result.put("content", content.substring(0, Math.min(200, content.length())) + "...");
+            result.put("targetCategory", category);
+            result.put("isRelevant", aiResult.isRelevant());
+            result.put("categoryMatch", aiResult.isCategoryMatch());
+            result.put("relevanceScore", aiResult.getRelevanceScore());
+            result.put("suggestedCategory", aiResult.getSuggestedCategory());
+            result.put("keywords", aiResult.getKeywords());
+            result.put("reason", aiResult.getReason());
+            result.put("status", "success");
+            
+        } catch (Exception e) {
+            log.error("AI analysis test failed: {}", e.getMessage());
+            result.put("status", "error");
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
     }
     
     /**
