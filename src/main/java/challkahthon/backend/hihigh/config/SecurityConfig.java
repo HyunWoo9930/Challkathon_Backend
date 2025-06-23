@@ -46,6 +46,7 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.csrf(AbstractHttpConfigurer::disable)
 			.sessionManagement(
 				sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -54,7 +55,7 @@ public class SecurityConfig {
 				.requestMatchers("/", "/**").permitAll()
 				.requestMatchers("/api/**").permitAll()
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-					.requestMatchers("/", "/oauth/**", "/login/**").permitAll()
+				.requestMatchers("/", "/oauth/**", "/login/**").permitAll()
 				.anyRequest().authenticated()
 			)
 			.httpBasic(AbstractHttpConfigurer::disable)
@@ -86,10 +87,12 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:5000", "http://localhost:8080", "http://localhost:3000"));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setAllowedOriginPatterns(List.of("*")); // 모든 오리진 허용 (개발용)
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+		configuration.setAllowedHeaders(List.of("*")); // 모든 헤더 허용
 		configuration.setAllowCredentials(true);
+		configuration.setMaxAge(3600L); // 1시간 캐시
+		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;

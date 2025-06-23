@@ -50,8 +50,31 @@ dependencies {
 
     //Oauth
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+    //Web Crawling
+    implementation 'org.jsoup:jsoup:1.17.2'
+
+    //Translation
+    implementation 'com.google.cloud:google-cloud-translate:2.46.0'
+
+    //Text Summarization
+    implementation 'edu.stanford.nlp:stanford-corenlp:4.5.6'
+    implementation 'edu.stanford.nlp:stanford-corenlp:4.5.6:models'
+    
+    //JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
