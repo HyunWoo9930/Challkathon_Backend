@@ -28,19 +28,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         CustomOauth2UserDetails userDetails = (CustomOauth2UserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
 
-        // Generate access token
         String accessToken = tokenProvider.generateAccessToken(user);
 
-        // Generate refresh token
         String refreshToken = tokenProvider.generateRefreshToken(user);
 
-        // Build the redirect URL with tokens as query parameters
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("access_token", accessToken)
                 .queryParam("refresh_token", refreshToken)
                 .build().toUriString();
 
-        // Redirect to the frontend with tokens as query parameters
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

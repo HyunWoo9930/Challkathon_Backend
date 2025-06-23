@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import challkahthon.backend.hihigh.domain.entity.User;
 import challkahthon.backend.hihigh.domain.enums.UserRole;
+import challkahthon.backend.hihigh.dto.DesiredOccupationUpdateDto;
+import challkahthon.backend.hihigh.dto.GoalsUpdateDto;
+import challkahthon.backend.hihigh.dto.InterestsUpdateDto;
 import challkahthon.backend.hihigh.dto.UserUpdateDto;
 import challkahthon.backend.hihigh.jwt.CustomOauth2UserDetails;
 import challkahthon.backend.hihigh.jwt.OAuth2UserInfo;
@@ -42,6 +45,99 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 			user.setInterests(updateDto.getInterests());
 			user.setGoals(updateDto.getGoals());
 			user.setDesiredOccupation(updateDto.getDesiredOccupation());
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 관심사를 업데이트합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @param updateDto 업데이트할 관심사 정보
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User updateUserInterests(String userName, InterestsUpdateDto updateDto) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setInterests(updateDto.getInterests());
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 목표를 업데이트합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @param updateDto 업데이트할 목표 정보
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User updateUserGoals(String userName, GoalsUpdateDto updateDto) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setGoals(updateDto.getGoals());
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 희망직종을 업데이트합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @param updateDto 업데이트할 희망직종 정보
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User updateUserDesiredOccupation(String userName, DesiredOccupationUpdateDto updateDto) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setDesiredOccupation(updateDto.getDesiredOccupation());
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 관심사를 삭제합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User deleteUserInterests(String userName) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setInterests(null);
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 목표를 삭제합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User deleteUserGoals(String userName) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setGoals(null);
+			return userRepository.save(user);
+		}
+		return null;
+	}
+
+	/**
+	 * 사용자의 희망직종을 삭제합니다.
+	 * 
+	 * @param userName 사용자 이름
+	 * @return 업데이트된 사용자 정보
+	 */
+	public User deleteUserDesiredOccupation(String userName) {
+		User user = findByUserName(userName);
+		if (user != null) {
+			user.setDesiredOccupation(null);
 			return userRepository.save(user);
 		}
 		return null;
