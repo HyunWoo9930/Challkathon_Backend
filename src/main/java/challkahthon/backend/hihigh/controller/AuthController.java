@@ -16,6 +16,7 @@ import challkahthon.backend.hihigh.domain.entity.User;
 import challkahthon.backend.hihigh.dto.DesiredOccupationUpdateDto;
 import challkahthon.backend.hihigh.dto.GoalsUpdateDto;
 import challkahthon.backend.hihigh.dto.InterestsUpdateDto;
+import challkahthon.backend.hihigh.dto.UserResponseDto;
 import challkahthon.backend.hihigh.dto.UserUpdateDto;
 import challkahthon.backend.hihigh.jwt.JwtTokenProvider;
 import challkahthon.backend.hihigh.service.CustomUserDetailsService;
@@ -33,468 +34,518 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "인증", description = "인증 관련 API")
 public class AuthController {
 
-    private final JwtTokenProvider tokenProvider;
-    private final CustomUserDetailsService userDetailsService;
+	private final JwtTokenProvider tokenProvider;
+	private final CustomUserDetailsService userDetailsService;
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response, 
-                                         @org.springframework.web.bind.annotation.RequestParam(required = false) String refresh_token) {
-        String refreshToken = refresh_token;
+	@PostMapping("/refresh")
+	public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response,
+		@org.springframework.web.bind.annotation.RequestParam(required = false) String refresh_token) {
+		String refreshToken = refresh_token;
 
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            refreshToken = extractRefreshTokenFromCookies(request);
-        }
+		if (refreshToken == null || refreshToken.isEmpty()) {
+			refreshToken = extractRefreshTokenFromCookies(request);
+		}
 
-        if (refreshToken == null) {
-            return ResponseEntity.badRequest().body("Refresh token is missing");
-        }
+		if (refreshToken == null) {
+			return ResponseEntity.badRequest().body("Refresh token is missing");
+		}
 
-        if (!tokenProvider.validateToken(refreshToken) || !tokenProvider.isRefreshToken(refreshToken)) {
-            return ResponseEntity.badRequest().body("Invalid refresh token");
-        }
+		if (!tokenProvider.validateToken(refreshToken) || !tokenProvider.isRefreshToken(refreshToken)) {
+			return ResponseEntity.badRequest().body("Invalid refresh token");
+		}
 
-        String username = tokenProvider.getUserIdFromJWT(refreshToken);
-        User user = userDetailsService.findByUserName(username);
+		String username = tokenProvider.getUserIdFromJWT(refreshToken);
+		User user = userDetailsService.findByUserName(username);
 
-        if (user == null) {
-            return ResponseEntity.badRequest().body("User not found");
-        }
+		if (user == null) {
+			return ResponseEntity.badRequest().body("User not found");
+		}
 
-        String newAccessToken = tokenProvider.generateAccessToken(user);
+		String newAccessToken = tokenProvider.generateAccessToken(user);
 
-        return ResponseEntity.ok().body(new challkahthon.backend.hihigh.jwt.JwtAuthenticationResponse(newAccessToken));
-    }
+		return ResponseEntity.ok().body(new challkahthon.backend.hihigh.jwt.JwtAuthenticationResponse(newAccessToken));
+	}
 
-    private String extractRefreshTokenFromCookies(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("refresh_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
+	private String extractRefreshTokenFromCookies(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies != null) {
+			for (Cookie cookie : cookies) {
+				if ("refresh_token".equals(cookie.getName())) {
+					return cookie.getValue();
+				}
+			}
+		}
+		return null;
+	}
 
-    @GetMapping("/success")
-    public String success() {
-        return "success";
-    }
+	@GetMapping("/success")
+	public String success() {
+		return "success";
+	}
 
-    @Operation(
-        summary = "사용자 추가 정보 업데이트", 
-        description = "사용자의 관심사, 목표, 희망직종 정보를 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "업데이트할 사용자 정보",
-        required = true,
-        content = @io.swagger.v3.oas.annotations.media.Content(
-            mediaType = "application/json",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserUpdateDto.class)
-        )
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 업데이트됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @PostMapping("/update-info")
-    public ResponseEntity<?> updateUserInfo(@RequestBody UserUpdateDto updateDto) {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 정보 조회",
+		description = "현재 로그인된 사용자의 정보를 조회합니다. 비밀번호는 제외하고 반환됩니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "사용자 정보 조회 성공",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserResponseDto.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@GetMapping("/user-info")
+	public ResponseEntity<?> getUserInfo() {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.updateUserInfo(username, updateDto);
+		String username = authentication.getName();
+		User user = userDetailsService.findByLoginId(username);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (user == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		// UserResponseDto로 변환하여 반환 (비밀번호 제외)
+		UserResponseDto userResponse = UserResponseDto.fromEntity(user);
+		return ResponseEntity.ok().body(userResponse);
+	}
 
-    @Operation(
-        summary = "사용자 관심사 업데이트", 
-        description = "사용자의 관심사 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "업데이트할 관심사 정보",
-        required = true,
-        content = @io.swagger.v3.oas.annotations.media.Content(
-            mediaType = "application/json",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = InterestsUpdateDto.class)
-        )
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 업데이트됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @PutMapping("/interests")
-    public ResponseEntity<?> updateUserInterests(@RequestBody InterestsUpdateDto updateDto) {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 추가 정보 업데이트",
+		description = "사용자의 관심사, 목표, 희망직종 정보를 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.parameters.RequestBody(
+		description = "업데이트할 사용자 정보",
+		required = true,
+		content = @io.swagger.v3.oas.annotations.media.Content(
+			mediaType = "application/json",
+			schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserUpdateDto.class)
+		)
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 업데이트됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@PostMapping("/update-info")
+	public ResponseEntity<?> updateUserInfo(@RequestBody UserUpdateDto updateDto) {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.updateUserInterests(username, updateDto);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.updateUserInfo(username, updateDto);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "사용자 목표 업데이트", 
-        description = "사용자의 목표 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "업데이트할 목표 정보",
-        required = true,
-        content = @io.swagger.v3.oas.annotations.media.Content(
-            mediaType = "application/json",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = GoalsUpdateDto.class)
-        )
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 업데이트됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @PutMapping("/goals")
-    public ResponseEntity<?> updateUserGoals(@RequestBody GoalsUpdateDto updateDto) {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 관심사 업데이트",
+		description = "사용자의 관심사 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.parameters.RequestBody(
+		description = "업데이트할 관심사 정보",
+		required = true,
+		content = @io.swagger.v3.oas.annotations.media.Content(
+			mediaType = "application/json",
+			schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = InterestsUpdateDto.class)
+		)
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 업데이트됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@PutMapping("/interests")
+	public ResponseEntity<?> updateUserInterests(@RequestBody InterestsUpdateDto updateDto) {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.updateUserGoals(username, updateDto);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.updateUserInterests(username, updateDto);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "사용자 희망직종 업데이트", 
-        description = "사용자의 희망직종 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "업데이트할 희망직종 정보",
-        required = true,
-        content = @io.swagger.v3.oas.annotations.media.Content(
-            mediaType = "application/json",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DesiredOccupationUpdateDto.class)
-        )
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 업데이트됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @PutMapping("/desired-occupation")
-    public ResponseEntity<?> updateUserDesiredOccupation(@RequestBody DesiredOccupationUpdateDto updateDto) {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 목표 업데이트",
+		description = "사용자의 목표 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.parameters.RequestBody(
+		description = "업데이트할 목표 정보",
+		required = true,
+		content = @io.swagger.v3.oas.annotations.media.Content(
+			mediaType = "application/json",
+			schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = GoalsUpdateDto.class)
+		)
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 업데이트됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@PutMapping("/goals")
+	public ResponseEntity<?> updateUserGoals(@RequestBody GoalsUpdateDto updateDto) {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.updateUserDesiredOccupation(username, updateDto);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.updateUserGoals(username, updateDto);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "사용자 관심사 삭제", 
-        description = "사용자의 관심사 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 삭제됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @DeleteMapping("/interests")
-    public ResponseEntity<?> deleteUserInterests() {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 희망직종 업데이트",
+		description = "사용자의 희망직종 정보만 업데이트합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.parameters.RequestBody(
+		description = "업데이트할 희망직종 정보",
+		required = true,
+		content = @io.swagger.v3.oas.annotations.media.Content(
+			mediaType = "application/json",
+			schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DesiredOccupationUpdateDto.class)
+		)
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 업데이트됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@PutMapping("/desired-occupation")
+	public ResponseEntity<?> updateUserDesiredOccupation(@RequestBody DesiredOccupationUpdateDto updateDto) {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.deleteUserInterests(username);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.updateUserDesiredOccupation(username, updateDto);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "사용자 목표 삭제", 
-        description = "사용자의 목표 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 삭제됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @DeleteMapping("/goals")
-    public ResponseEntity<?> deleteUserGoals() {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 관심사 삭제",
+		description = "사용자의 관심사 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 삭제됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@DeleteMapping("/interests")
+	public ResponseEntity<?> deleteUserInterests() {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.deleteUserGoals(username);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.deleteUserInterests(username);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "사용자 희망직종 삭제", 
-        description = "사용자의 희망직종 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 삭제됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @DeleteMapping("/desired-occupation")
-    public ResponseEntity<?> deleteUserDesiredOccupation() {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 목표 삭제",
+		description = "사용자의 목표 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 삭제됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@DeleteMapping("/goals")
+	public ResponseEntity<?> deleteUserGoals() {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        User updatedUser = userDetailsService.deleteUserDesiredOccupation(username);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.deleteUserGoals(username);
 
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body(updatedUser);
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
 
-    @Operation(
-        summary = "계정 삭제", 
-        description = "사용자 계정을 완전히 삭제합니다. 로그인된 사용자만 사용 가능합니다. 삭제 후에는 복구할 수 없습니다."
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", 
-            description = "성공적으로 계정이 삭제됨",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청 또는 사용자를 찾을 수 없음",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401", 
-            description = "인증되지 않은 사용자",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                mediaType = "application/json",
-                schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
-            )
-        )
-    })
-    @DeleteMapping("/account")
-    public ResponseEntity<?> deleteAccount() {
-        // 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-        }
+	@Operation(
+		summary = "사용자 희망직종 삭제",
+		description = "사용자의 희망직종 정보를 삭제합니다. 로그인된 사용자만 사용 가능합니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 삭제됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = User.class)
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@DeleteMapping("/desired-occupation")
+	public ResponseEntity<?> deleteUserDesiredOccupation() {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
 
-        String username = authentication.getName();
-        boolean deleted = userDetailsService.deleteUser(username);
+		String username = authentication.getName();
+		User updatedUser = userDetailsService.deleteUserDesiredOccupation(username);
 
-        if (!deleted) {
-            return ResponseEntity.badRequest().body("사용자를 찾을 수 없거나 삭제할 수 없습니다.");
-        }
+		if (updatedUser == null) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
+		}
 
-        return ResponseEntity.ok().body("계정이 성공적으로 삭제되었습니다.");
-    }
+		return ResponseEntity.ok().body(updatedUser);
+	}
+
+	@Operation(
+		summary = "계정 삭제",
+		description = "사용자 계정을 완전히 삭제합니다. 로그인된 사용자만 사용 가능합니다. 삭제 후에는 복구할 수 없습니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "성공적으로 계정이 삭제됨",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "400",
+			description = "잘못된 요청 또는 사용자를 찾을 수 없음",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "401",
+			description = "인증되지 않은 사용자",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")
+			)
+		)
+	})
+	@DeleteMapping("/account")
+	public ResponseEntity<?> deleteAccount() {
+		// 현재 인증된 사용자 정보 가져오기
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
+
+		String username = authentication.getName();
+		boolean deleted = userDetailsService.deleteUser(username);
+
+		if (!deleted) {
+			return ResponseEntity.badRequest().body("사용자를 찾을 수 없거나 삭제할 수 없습니다.");
+		}
+
+		return ResponseEntity.ok().body("계정이 성공적으로 삭제되었습니다.");
+	}
 }
