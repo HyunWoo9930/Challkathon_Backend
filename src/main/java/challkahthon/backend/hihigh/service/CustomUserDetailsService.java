@@ -39,13 +39,13 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 추가 정보(관심사, 목표, 희망직종)를 업데이트합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @param updateDto 업데이트할 사용자 정보
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User updateUserInfo(String userName, UserUpdateDto updateDto) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setInterests(updateDto.getInterests());
 			user.setGoals(updateDto.getGoals());
@@ -57,13 +57,13 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 관심사를 업데이트합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @param updateDto 업데이트할 관심사 정보
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User updateUserInterests(String userName, InterestsUpdateDto updateDto) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setInterests(updateDto.getInterests());
 			return userRepository.save(user);
@@ -73,13 +73,13 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 목표를 업데이트합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @param updateDto 업데이트할 목표 정보
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User updateUserGoals(String userName, GoalsUpdateDto updateDto) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setGoals(updateDto.getGoals());
 			return userRepository.save(user);
@@ -89,13 +89,13 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 희망직종을 업데이트합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @param updateDto 업데이트할 희망직종 정보
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User updateUserDesiredOccupation(String userName, DesiredOccupationUpdateDto updateDto) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setDesiredOccupation(updateDto.getDesiredOccupation());
 			return userRepository.save(user);
@@ -105,12 +105,12 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 관심사를 삭제합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User deleteUserInterests(String userName) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setInterests(null);
 			return userRepository.save(user);
@@ -120,12 +120,12 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 목표를 삭제합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User deleteUserGoals(String userName) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setGoals(null);
 			return userRepository.save(user);
@@ -135,12 +135,12 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자의 희망직종을 삭제합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @return 업데이트된 사용자 정보
 	 */
 	public User deleteUserDesiredOccupation(String userName) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			user.setDesiredOccupation(null);
 			return userRepository.save(user);
@@ -150,12 +150,12 @@ public class CustomUserDetailsService extends DefaultOAuth2UserService {
 
 	/**
 	 * 사용자 계정을 삭제합니다.
-	 * 
+	 *
 	 * @param userName 사용자 이름
 	 * @return 삭제 성공 여부
 	 */
 	public boolean deleteUser(String userName) {
-		User user = findByUserName(userName);
+		User user = findByLoginId(userName);
 		if (user != null) {
 			userRepository.delete(user);
 			return true;

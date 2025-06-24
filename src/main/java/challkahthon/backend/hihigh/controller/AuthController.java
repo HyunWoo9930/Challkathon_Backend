@@ -2,7 +2,6 @@ package challkahthon.backend.hihigh.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -119,9 +118,7 @@ public class AuthController {
 		)
 	})
 	@GetMapping("/user-info")
-	public ResponseEntity<?> getUserInfo() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> getUserInfo(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -249,9 +246,7 @@ public class AuthController {
 		)
 	})
 	@PostMapping("/update-info")
-	public ResponseEntity<?> updateUserInfo(@RequestBody UserUpdateDto updateDto) {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> updateUserInfo(@RequestBody UserUpdateDto updateDto, Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -305,9 +300,8 @@ public class AuthController {
 		)
 	})
 	@PutMapping("/interests")
-	public ResponseEntity<?> updateUserInterests(@RequestBody InterestsUpdateDto updateDto) {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> updateUserInterests(@RequestBody InterestsUpdateDto updateDto,
+		Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -361,9 +355,7 @@ public class AuthController {
 		)
 	})
 	@PutMapping("/goals")
-	public ResponseEntity<?> updateUserGoals(@RequestBody GoalsUpdateDto updateDto) {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> updateUserGoals(@RequestBody GoalsUpdateDto updateDto, Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -417,9 +409,8 @@ public class AuthController {
 		)
 	})
 	@PutMapping("/desired-occupation")
-	public ResponseEntity<?> updateUserDesiredOccupation(@RequestBody DesiredOccupationUpdateDto updateDto) {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> updateUserDesiredOccupation(@RequestBody DesiredOccupationUpdateDto updateDto,
+		Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -465,9 +456,7 @@ public class AuthController {
 		)
 	})
 	@DeleteMapping("/interests")
-	public ResponseEntity<?> deleteUserInterests() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> deleteUserInterests(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -513,9 +502,7 @@ public class AuthController {
 		)
 	})
 	@DeleteMapping("/goals")
-	public ResponseEntity<?> deleteUserGoals() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> deleteUserGoals(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -561,9 +548,7 @@ public class AuthController {
 		)
 	})
 	@DeleteMapping("/desired-occupation")
-	public ResponseEntity<?> deleteUserDesiredOccupation() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> deleteUserDesiredOccupation(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -609,9 +594,7 @@ public class AuthController {
 		)
 	})
 	@DeleteMapping("/account")
-	public ResponseEntity<?> deleteAccount() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> deleteAccount(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}

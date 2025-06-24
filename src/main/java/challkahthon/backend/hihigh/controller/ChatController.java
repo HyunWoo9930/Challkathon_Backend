@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,9 +38,7 @@ public class ChatController {
 		description = "모든 채팅 대화 목록을 조회합니다."
 	)
 	@GetMapping
-	public ResponseEntity<?> getAllChats() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> getAllChats(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -59,9 +56,7 @@ public class ChatController {
 		description = "특정 채팅의 상세 정보와 메시지를 조회합니다."
 	)
 	@GetMapping("/{chatId}")
-	public ResponseEntity<?> getChatById() {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public ResponseEntity<?> getChatById(@PathVariable Long chatId, Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -78,9 +73,9 @@ public class ChatController {
 	)
 	@PostMapping("/{chatId}/messages")
 	public ResponseEntity<?> sendMessage(
-		@RequestBody ChatRequestDto request) {
-		// 현재 인증된 사용자 정보 가져오기
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		@PathVariable Long chatId,
+		@RequestBody ChatRequestDto request,
+		Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
