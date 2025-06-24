@@ -1,6 +1,7 @@
 package challkahthon.backend.hihigh.jwt;
 
 import java.util.Date;
+
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -101,6 +102,63 @@ public class JwtTokenProvider {
 			return true;
 		} catch (Exception ex) {
 			return false;
+		}
+	}
+
+	/**
+	 * Get token claims
+	 * @param token JWT token
+	 * @return Claims object containing token information
+	 */
+	public Claims getTokenClaims(String token) {
+		return Jwts.parserBuilder()
+			.setSigningKey(jwtSecret)
+			.build()
+			.parseClaimsJws(token)
+			.getBody();
+	}
+
+	/**
+	 * Get token issued at date
+	 * @param token JWT token
+	 * @return Date when token was issued
+	 */
+	public Date getTokenIssuedAt(String token) {
+		Claims claims = getTokenClaims(token);
+		return claims.getIssuedAt();
+	}
+
+	/**
+	 * Get token expiration date
+	 * @param token JWT token
+	 * @return Date when token expires
+	 */
+	public Date getTokenExpiration(String token) {
+		Claims claims = getTokenClaims(token);
+		return claims.getExpiration();
+	}
+
+	/**
+	 * Get token type (access or refresh)
+	 * @param token JWT token
+	 * @return Token type as string
+	 */
+	public String getTokenType(String token) {
+		Claims claims = getTokenClaims(token);
+		return (String)claims.get("tokenType");
+	}
+
+	/**
+	 * Check if token is expired
+	 * @param token JWT token
+	 * @return true if token is expired, false otherwise
+	 */
+	public boolean isTokenExpired(String token) {
+		try {
+			Date expiration = getTokenExpiration(token);
+			return expiration.before(new Date());
+		} catch (Exception ex) {
+			return true;
 		}
 	}
 }

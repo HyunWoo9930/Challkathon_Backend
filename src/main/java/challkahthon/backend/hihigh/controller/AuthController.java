@@ -16,6 +16,7 @@ import challkahthon.backend.hihigh.domain.entity.User;
 import challkahthon.backend.hihigh.dto.DesiredOccupationUpdateDto;
 import challkahthon.backend.hihigh.dto.GoalsUpdateDto;
 import challkahthon.backend.hihigh.dto.InterestsUpdateDto;
+import challkahthon.backend.hihigh.dto.TokenValidationResponseDto;
 import challkahthon.backend.hihigh.dto.UserResponseDto;
 import challkahthon.backend.hihigh.dto.UserUpdateDto;
 import challkahthon.backend.hihigh.jwt.JwtTokenProvider;
@@ -26,6 +27,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -131,6 +136,78 @@ public class AuthController {
 		// UserResponseDto로 변환하여 반환 (비밀번호 제외)
 		UserResponseDto userResponse = UserResponseDto.fromEntity(user);
 		return ResponseEntity.ok().body(userResponse);
+	}
+
+	@Operation(
+		summary = "토큰 유효성 검증",
+		description = "제공된 JWT 토큰의 유효성을 검증하고 토큰 정보를 반환합니다."
+	)
+	@io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(
+			responseCode = "200",
+			description = "토큰 유효성 검증 결과",
+			content = @io.swagger.v3.oas.annotations.media.Content(
+				mediaType = "application/json",
+				schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = TokenValidationResponseDto.class)
+			)
+		)
+	})
+	@GetMapping("/validate-token")
+	public ResponseEntity<TokenValidationResponseDto> validateToken(HttpServletRequest request) {
+		// Authorization 헤더에서 토큰 추출
+		String authHeader = request.getHeader("Authorization");
+		String token = null;
+
+		if (authHeader != null && authHeader.startsWith("Bearer ")) {
+			token = authHeader.substring(7);
+		}
+
+		// 토큰이 없는 경우
+		if (token == null || token.trim().isEmpty()) {
+			return ResponseEntity.ok(TokenValidationResponseDto.invalid("토큰이 제공되지 않았습니다."));
+		}
+
+		try {
+			// 토큰 유효성 검증
+			if (!tokenProvider.validateToken(token)) {
+				return ResponseEntity.ok(TokenValidationResponseDto.invalid("유효하지 않은 토큰입니다."));
+			}
+
+			// 토큰이 만료되었는지 확인
+			if (tokenProvider.isTokenExpired(token)) {
+				return ResponseEntity.ok(TokenValidationResponseDto.invalid("토큰이 만료되었습니다."));
+			}
+
+			// 토큰 정보 추출
+			String username = tokenProvider.getUserIdFromJWT(token);
+			Date issuedAt = tokenProvider.getTokenIssuedAt(token);
+			Date expiresAt = tokenProvider.getTokenExpiration(token);
+			String tokenType = tokenProvider.getTokenType(token);
+
+			// Date를 LocalDateTime으로 변환
+			LocalDateTime issuedAtLocalDateTime = issuedAt.toInstant()
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
+			LocalDateTime expiresAtLocalDateTime = expiresAt.toInstant()
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
+
+			// 사용자 존재 여부 확인
+			User user = userDetailsService.findByLoginId(username);
+			if (user == null) {
+				return ResponseEntity.ok(TokenValidationResponseDto.invalid("토큰의 사용자를 찾을 수 없습니다."));
+			}
+
+			return ResponseEntity.ok(TokenValidationResponseDto.valid(
+				user.getName(),
+				issuedAtLocalDateTime,
+				expiresAtLocalDateTime,
+				tokenType != null ? tokenType.toUpperCase() : "ACCESS"
+			));
+
+		} catch (Exception e) {
+			return ResponseEntity.ok(TokenValidationResponseDto.invalid("토큰 처리 중 오류가 발생했습니다: " + e.getMessage()));
+		}
 	}
 
 	@Operation(
