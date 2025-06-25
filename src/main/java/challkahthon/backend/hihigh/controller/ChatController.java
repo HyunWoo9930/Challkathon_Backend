@@ -1,7 +1,6 @@
 package challkahthon.backend.hihigh.controller;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,7 +19,6 @@ import challkahthon.backend.hihigh.domain.entity.Chat;
 import challkahthon.backend.hihigh.domain.entity.ChatMessage;
 import challkahthon.backend.hihigh.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -34,29 +32,11 @@ public class ChatController {
 	private final ChatService chatService;
 
 	@Operation(
-		summary = "내 채팅 목록 조회",
-		description = "현재 사용자의 모든 채팅 대화 목록을 조회합니다."
+		summary = "채팅 조회",
+		description = "현재 사용자의 채팅 정보와 메시지를 조회합니다."
 	)
 	@GetMapping
-	public ResponseEntity<?> getAllChats(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-		}
-
-		String username = authentication.getName();
-		List<Chat> chats = chatService.getAllChats(username);
-		List<ChatDto> chatDtos = chats.stream()
-			.map(ChatDto::fromEntity)
-			.collect(Collectors.toList());
-		return ResponseEntity.ok(chatDtos);
-	}
-
-	@Operation(
-		summary = "채팅 조회",
-		description = "특정 채팅의 상세 정보와 메시지를 조회합니다."
-	)
-	@GetMapping("/{chatId}")
-	public ResponseEntity<?> getChatById(@PathVariable Long chatId, Authentication authentication) {
+	public ResponseEntity<?> getChat(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
 		}
@@ -71,9 +51,8 @@ public class ChatController {
 		summary = "메시지 전송",
 		description = "채팅에 메시지를 전송하고 GPT의 응답을 받습니다."
 	)
-	@PostMapping("/{chatId}/messages")
+	@PostMapping("/messages")
 	public ResponseEntity<?> sendMessage(
-		@PathVariable Long chatId,
 		@RequestBody ChatRequestDto request,
 		Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {

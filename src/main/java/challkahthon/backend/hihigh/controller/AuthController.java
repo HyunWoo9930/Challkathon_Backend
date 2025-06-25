@@ -36,6 +36,10 @@ public class AuthController {
 	private final JwtTokenProvider tokenProvider;
 	private final CustomUserDetailsService userDetailsService;
 
+	@Operation(
+		summary = "토큰 갱신",
+		description = "만료된 액세스 토큰을 리프레시 토큰을 사용하여 갱신합니다. 리프레시 토큰은 쿠키 또는 파라미터로 전달할 수 있습니다."
+	)
 	@PostMapping("/refresh")
 	public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response,
 		@org.springframework.web.bind.annotation.RequestParam(required = false) String refresh_token) {
@@ -77,11 +81,6 @@ public class AuthController {
 		return null;
 	}
 
-	@GetMapping("/success")
-	public String success() {
-		return "OAuth 로그인 성공!";
-	}
-
 	@Operation(
 		summary = "사용자 정보 조회",
 		description = "현재 로그인된 사용자의 정보를 조회합니다. 비밀번호는 제외하고 반환됩니다."
@@ -99,7 +98,6 @@ public class AuthController {
 			return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
 		}
 
-		// UserResponseDto로 변환하여 반환 (비밀번호 제외)
 		UserResponseDto userResponse = UserResponseDto.fromEntity(user);
 		return ResponseEntity.ok().body(userResponse);
 	}

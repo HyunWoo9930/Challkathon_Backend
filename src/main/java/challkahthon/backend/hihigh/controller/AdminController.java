@@ -27,8 +27,6 @@ public class AdminController {
 
 	private final CareerNewsService careerNewsService;
 
-	// ===== 뉴스 크롤링 및 처리 관련 =====
-
 	@Operation(
 		summary = "뉴스 크롤링 및 처리 실행",
 		description = "지정된 카테고리의 뉴스를 크롤링하고 처리합니다. 관리자만 접근 가능합니다."
@@ -65,8 +63,6 @@ public class AdminController {
 			"count", count
 		));
 	}
-
-	// ===== 뉴스 조회 관련 (관리자용) =====
 
 	@Operation(
 		summary = "키워드로 뉴스 검색",
@@ -192,7 +188,6 @@ public class AdminController {
 		analysis.put("keywords", news.getKeywords());
 		analysis.put("analysisReason", news.getAnalysisReason());
 
-		// 분석 결과 해석
 		String interpretation = "";
 		if (news.getIsAiAnalyzed() != null && news.getIsAiAnalyzed()) {
 			if (news.getIsRelevant() != null && news.getIsRelevant()) {
@@ -211,8 +206,6 @@ public class AdminController {
 
 		return ResponseEntity.ok(analysis);
 	}
-
-	// ===== AI 분석 관련 =====
 
 	@Operation(
 		summary = "AI 분석 미처리 뉴스 일괄 분석",
@@ -303,8 +296,6 @@ public class AdminController {
 		return ResponseEntity.ok(stats);
 	}
 
-	// ===== 시스템 관련 =====
-
 	@Operation(
 		summary = "현재 설정된 뉴스 소스 목록 조회",
 		description = "현재 크롤링하고 있는 모든 뉴스 소스의 목록과 정보를 조회합니다."
@@ -333,15 +324,6 @@ public class AdminController {
 	}
 
 	@Operation(
-		summary = "OAuth 성공 테스트",
-		description = "OAuth 로그인 성공 후 리다이렉트 테스트용 엔드포인트입니다."
-	)
-	@GetMapping("/auth/success")
-	public String authSuccess() {
-		return "OAuth 로그인 성공!";
-	}
-
-	@Operation(
 		summary = "토큰 유효성 검증 테스트",
 		description = "제공된 JWT 토큰의 유효성을 검증하고 토큰 정보를 반환합니다."
 	)
@@ -353,7 +335,6 @@ public class AdminController {
 		Map<String, Object> result = new HashMap<>();
 
 		try {
-			// 토큰 유효성 검증 로직을 여기에 추가할 수 있습니다
 			result.put("valid", true);
 			result.put("message", "토큰이 유효합니다.");
 			result.put("timestamp", LocalDateTime.now());
