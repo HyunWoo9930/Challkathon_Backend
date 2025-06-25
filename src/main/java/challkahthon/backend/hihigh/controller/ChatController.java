@@ -34,8 +34,8 @@ public class ChatController {
 	private final ChatService chatService;
 
 	@Operation(
-		summary = "모든 채팅 조회(관리자용)",
-		description = "모든 채팅 대화 목록을 조회합니다."
+		summary = "내 채팅 목록 조회",
+		description = "현재 사용자의 모든 채팅 대화 목록을 조회합니다."
 	)
 	@GetMapping
 	public ResponseEntity<?> getAllChats(Authentication authentication) {
