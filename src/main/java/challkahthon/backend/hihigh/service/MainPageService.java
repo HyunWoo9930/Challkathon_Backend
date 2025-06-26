@@ -77,7 +77,7 @@ public class MainPageService {
             return MainPageResponseDto.builder()
                 .name(username)
                 .message(message)
-                .personalizedNews(personalizedNewsDto)
+                // .personalizedNews(personalizedNewsDto)
                 .newsByKeyword(newsByKeyword)
                 .userKeywords(userInputKeywords)
                 .keywordStats(keywordStats)
