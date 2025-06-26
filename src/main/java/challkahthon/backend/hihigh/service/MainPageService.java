@@ -6,6 +6,7 @@ import challkahthon.backend.hihigh.domain.entity.CareerNews;
 import challkahthon.backend.hihigh.repository.CareerNewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -31,9 +32,10 @@ public class MainPageService {
         // Create a map to store news items by category
         Map<String, List<NewsItemDto>> newsByCategory = new HashMap<>();
         
-        // For each category, get the latest news items
+        // For each category, get the latest news items (전체 사용자 대상만)
         for (String category : categories) {
-            List<CareerNews> newsList = careerNewsRepository.findTop10ByCategoryOrderByPublishedDateDesc(category);
+            List<CareerNews> newsList = careerNewsRepository
+                .findByCategoryAndTargetUserIsNullOrderByCreatedAtDesc(category, PageRequest.of(0, 10));
             List<NewsItemDto> newsItemDtos = newsList.stream()
                     .map(NewsItemDto::fromEntity)
                     .collect(Collectors.toList());

@@ -1,11 +1,21 @@
 package challkahthon.backend.hihigh.dto;
 
+import challkahthon.backend.hihigh.domain.enums.Gender;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
-@Schema(description = "사용자 추가 정보 업데이트 DTO")
+@Schema(description = "사용자 정보 업데이트 DTO")
 public class UserUpdateDto {
+    
+    @Schema(description = "사용자 이름", example = "홍길동")
+    private String name;
+    
+    @Schema(description = "성별", example = "MALE")
+    private Gender gender;
+    
+    @Schema(description = "출생년도", example = "1995")
+    private String birthYear;
     
     @Schema(description = "사용자 관심사", example = "프로그래밍, 디자인, 마케팅")
     private String interests;

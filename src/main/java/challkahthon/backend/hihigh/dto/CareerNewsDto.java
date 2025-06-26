@@ -20,74 +20,73 @@ public class CareerNewsDto {
     private String sourceUrl;
     private String category;
     private String keywords;
-    private String summary;
-    private LocalDateTime publishedDate;
-    private LocalDateTime updatedAt;
     
-    // Full content is only included in detailed view
-    private String content;
+    // 개인화 관련 필드
+    private String targetUsername;
+    private String userInterests;
+    private Boolean isPersonalized;
     
-    // AI 분석 결과 필드들
+    // AI 분석 결과
     private Boolean isAiAnalyzed;
     private Boolean isRelevant;
-    private Boolean categoryMatch;
     private Double relevanceScore;
     private String suggestedCategory;
     private String analysisReason;
     
+    // 콘텐츠
+    private String translatedContent;
+    private String summary;
+    private String language;
+    
+    // 날짜
+    private LocalDateTime publishedDate;
+    private LocalDateTime createdAt;
+
     /**
-     * Convert entity to DTO (summary view without full content)
+     * Entity를 DTO로 변환 (콘텐츠 제외)
      */
-    public static CareerNewsDto fromEntity(CareerNews news) {
+    public static CareerNewsDto fromEntity(CareerNews entity) {
+        if (entity == null) {
+            return null;
+        }
+
         return CareerNewsDto.builder()
-                .id(news.getId())
-                .title(news.getTitle())
-                .thumbnailUrl(news.getThumbnailUrl())
-                .source(news.getSource())
-                .sourceUrl(news.getSourceUrl())
-                .category(news.getCategory())
-                .keywords(news.getKeywords())
-                .summary(news.getSummary())
-                .publishedDate(news.getPublishedDate())
-                .updatedAt(news.getUpdatedAt())
-                .isAiAnalyzed(news.getIsAiAnalyzed())
-                .isRelevant(news.getIsRelevant())
-                .categoryMatch(news.getCategoryMatch())
-                .relevanceScore(news.getRelevanceScore())
-                .suggestedCategory(news.getSuggestedCategory())
-                .analysisReason(news.getAnalysisReason())
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .thumbnailUrl(entity.getThumbnailUrl())
+                .source(entity.getSource())
+                .sourceUrl(entity.getSourceUrl())
+                .category(entity.getCategory())
+                .keywords(entity.getKeywords())
+                .targetUsername(entity.getTargetUser() != null ? entity.getTargetUser().getLoginId() : null)
+                .userInterests(entity.getUserInterests())
+                .isPersonalized(entity.getTargetUser() != null)
+                .isAiAnalyzed(entity.getIsAiAnalyzed())
+                .isRelevant(entity.getIsRelevant())
+                .relevanceScore(entity.getRelevanceScore())
+                .suggestedCategory(entity.getSuggestedCategory())
+                .analysisReason(entity.getAnalysisReason())
+                .translatedContent(entity.getTranslatedContent())
+                .summary(entity.getSummary())
+                .language(entity.getLanguage())
+                .publishedDate(entity.getPublishedDate())
+                .createdAt(entity.getCreatedAt())
                 .build();
     }
-    
+
     /**
-     * Convert entity to DTO (detailed view with full content)
+     * Entity를 DTO로 변환 (전체 콘텐츠 포함)
      */
-    public static CareerNewsDto fromEntityWithContent(CareerNews news) {
-        CareerNewsDto dto = fromEntity(news);
-        // Use translated content if available, otherwise use original content
-        String fullContent = (news.getTranslatedContent() != null && !news.getTranslatedContent().trim().isEmpty()) 
-                ? news.getTranslatedContent() : news.getOriginalContent();
-        dto.setContent(fullContent);
+    public static CareerNewsDto fromEntityWithContent(CareerNews entity) {
+        CareerNewsDto dto = fromEntity(entity);
+        if (dto != null && entity.getOriginalContent() != null) {
+            // 원본 콘텐츠는 summary 필드에 저장 (너무 길 수 있으므로 제한)
+            String content = entity.getOriginalContent();
+            if (content.length() > 500) {
+                content = content.substring(0, 500) + "...";
+            }
+            dto.setSummary(content);
+        }
         return dto;
-    }
-    
-    /**
-     * Convert entity to DTO (AI analysis focused view)
-     */
-    public static CareerNewsDto fromEntityWithAIAnalysis(CareerNews news) {
-        return CareerNewsDto.builder()
-                .id(news.getId())
-                .title(news.getTitle())
-                .category(news.getCategory())
-                .keywords(news.getKeywords())
-                .isAiAnalyzed(news.getIsAiAnalyzed())
-                .isRelevant(news.getIsRelevant())
-                .categoryMatch(news.getCategoryMatch())
-                .relevanceScore(news.getRelevanceScore())
-                .suggestedCategory(news.getSuggestedCategory())
-                .analysisReason(news.getAnalysisReason())
-                .publishedDate(news.getPublishedDate())
-                .updatedAt(news.getUpdatedAt())
-                .build();
     }
 }

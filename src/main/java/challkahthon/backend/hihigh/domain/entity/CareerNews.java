@@ -1,11 +1,6 @@
 package challkahthon.backend.hihigh.domain.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,6 +32,13 @@ public class CareerNews {
     private String category;
     
     private String keywords;
+    
+    // 사용자별 맞춤 뉴스를 위한 필드 추가
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User targetUser;
+    
+    private String userInterests; // 이 뉴스가 매칭된 사용자 관심사
     
     // AI 분석 결과 필드들
     private Boolean isAiAnalyzed;
@@ -71,4 +73,9 @@ public class CareerNews {
     
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    // 전체 사용자 대상 뉴스인지 확인하는 메서드
+    public boolean isGlobalNews() {
+        return targetUser == null;
+    }
 }
