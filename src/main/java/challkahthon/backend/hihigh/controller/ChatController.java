@@ -63,4 +63,32 @@ public class ChatController {
 		ChatMessage response = chatService.sendMessage(request.getMessage(), username);
 		return ResponseEntity.ok(ChatMessageDto.fromEntity(response));
 	}
+
+	@Operation(
+		summary = "채팅 통계 조회",
+		description = "현재 사용자의 채팅 통계 정보를 조회합니다."
+	)
+	@GetMapping("/stats")
+	public ResponseEntity<?> getChatStats(Authentication authentication) {
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
+
+		String username = authentication.getName();
+		return ResponseEntity.ok(chatService.getUserChatStats(username));
+	}
+
+	@Operation(
+		summary = "채팅 요약 조회",
+		description = "현재 사용자의 최근 채팅 요약을 조회합니다."
+	)
+	@GetMapping("/summary")
+	public ResponseEntity<?> getChatSummary(Authentication authentication) {
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
+		}
+
+		String username = authentication.getName();
+		return ResponseEntity.ok(chatService.getChatSummary(username));
+	}
 }
