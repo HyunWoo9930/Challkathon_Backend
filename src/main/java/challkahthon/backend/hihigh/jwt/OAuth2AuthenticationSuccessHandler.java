@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider tokenProvider;
-    private final String redirectUri = "http://localhost:3000/googleLogin";
+    private final String redirectUri = "https://hai-jiheeflees-projects.vercel.app/googleLogin";
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,

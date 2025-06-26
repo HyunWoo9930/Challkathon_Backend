@@ -3,6 +3,7 @@ package challkahthon.backend.hihigh.controller;
 import challkahthon.backend.hihigh.domain.entity.CareerNews;
 import challkahthon.backend.hihigh.dto.CareerNewsDto;
 import challkahthon.backend.hihigh.service.CareerNewsService;
+import challkahthon.backend.hihigh.service.WebCrawlerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class CareerNewsController {
 
 	private final CareerNewsService careerNewsService;
+	private final WebCrawlerService webCrawlerService;
 
 	@Operation(
 		summary = "카테고리별 최신 뉴스 조회",

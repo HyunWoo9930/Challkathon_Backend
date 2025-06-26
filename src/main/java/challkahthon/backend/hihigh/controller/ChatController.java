@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,27 +55,5 @@ public class ChatController {
 		String username = authentication.getName();
 		ChatMessage response = chatService.sendMessage(request.getMessage(), username);
 		return ResponseEntity.ok(ChatMessageDto.fromEntity(response));
-	}
-
-	@Operation(summary = "채팅 통계 조회")
-	@GetMapping("/stats")
-	public ResponseEntity<?> getChatStats(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-		}
-
-		String username = authentication.getName();
-		return ResponseEntity.ok(chatService.getUserChatStats(username));
-	}
-
-	@Operation(summary = "채팅 요약 조회")
-	@GetMapping("/summary")
-	public ResponseEntity<?> getChatSummary(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-		}
-
-		String username = authentication.getName();
-		return ResponseEntity.ok(chatService.getChatSummary(username));
 	}
 }
