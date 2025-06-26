@@ -31,10 +31,7 @@ public class ChatController {
 
 	private final ChatService chatService;
 
-	@Operation(
-		summary = "채팅 조회",
-		description = "현재 사용자의 채팅 정보와 메시지를 조회합니다."
-	)
+	@Operation(summary = "채팅 조회")
 	@GetMapping
 	public ResponseEntity<?> getChat(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
@@ -47,10 +44,7 @@ public class ChatController {
 		return ResponseEntity.ok(ChatDto.fromEntityWithMessages(chat, messages));
 	}
 
-	@Operation(
-		summary = "메시지 전송",
-		description = "채팅에 메시지를 전송하고 GPT의 응답을 받습니다."
-	)
+	@Operation(summary = "메시지 전송")
 	@PostMapping("/messages")
 	public ResponseEntity<?> sendMessage(
 		@RequestBody ChatRequestDto request,
@@ -64,10 +58,7 @@ public class ChatController {
 		return ResponseEntity.ok(ChatMessageDto.fromEntity(response));
 	}
 
-	@Operation(
-		summary = "채팅 통계 조회",
-		description = "현재 사용자의 채팅 통계 정보를 조회합니다."
-	)
+	@Operation(summary = "채팅 통계 조회")
 	@GetMapping("/stats")
 	public ResponseEntity<?> getChatStats(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
@@ -78,10 +69,7 @@ public class ChatController {
 		return ResponseEntity.ok(chatService.getUserChatStats(username));
 	}
 
-	@Operation(
-		summary = "채팅 요약 조회",
-		description = "현재 사용자의 최근 채팅 요약을 조회합니다."
-	)
+	@Operation(summary = "채팅 요약 조회")
 	@GetMapping("/summary")
 	public ResponseEntity<?> getChatSummary(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
