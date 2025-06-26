@@ -20,14 +20,14 @@ public class CareerNewsDto {
     private String sourceUrl;
     private String category;
     private String keywords;
-    
+
     private String targetUsername;
     private String userInterests;
     private Boolean isPersonalized;
-    
+
     private String content;
     private String language;
-    
+
     private LocalDateTime publishedDate;
     private LocalDateTime createdAt;
 
@@ -44,9 +44,9 @@ public class CareerNewsDto {
                 .sourceUrl(entity.getSourceUrl())
                 .category(entity.getCategory())
                 .keywords(entity.getKeywords())
-                .targetUsername(entity.getTargetUser() != null ? entity.getTargetUser().getLoginId() : null)
+                .targetUsername(null)
                 .userInterests(entity.getUserInterests())
-                .isPersonalized(entity.getTargetUser() != null)
+                .isPersonalized(entity.getUserInterests() != null && !entity.getUserInterests().trim().isEmpty())
                 .language(entity.getLanguage())
                 .publishedDate(entity.getPublishedDate())
                 .createdAt(entity.getCreatedAt())

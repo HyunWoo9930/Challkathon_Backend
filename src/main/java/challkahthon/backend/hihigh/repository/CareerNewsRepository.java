@@ -13,34 +13,26 @@ import java.util.List;
 
 @Repository
 public interface CareerNewsRepository extends JpaRepository<CareerNews, Long> {
-    
-    List<CareerNews> findByCategoryAndTargetUserIsNullOrderByCreatedAtDesc(String category, Pageable pageable);
-    
-    List<CareerNews> findByTargetUserIsNullOrderByCreatedAtDesc(Pageable pageable);
-    
-    List<CareerNews> findByTargetUserOrderByCreatedAtDesc(User user, Pageable pageable);
-    
-    @Query("SELECT n FROM CareerNews n WHERE n.targetUser = :user OR n.targetUser IS NULL ORDER BY n.createdAt DESC")
-    List<CareerNews> findPersonalizedNews(@Param("user") User user, Pageable pageable);
-    
-    @Query("SELECT n FROM CareerNews n WHERE n.targetUser = :user AND n.userInterests LIKE %:interest% ORDER BY n.createdAt DESC")
-    List<CareerNews> findByUserAndInterestContaining(@Param("user") User user, @Param("interest") String interest, Pageable pageable);
-    
-    boolean existsBySourceUrlAndTargetUser(String sourceUrl, User targetUser);
-    
-    boolean existsBySourceUrlAndTargetUserIsNull(String sourceUrl);
-    
-    long countByTargetUserAndCreatedAtAfter(User user, LocalDateTime dateTime);
-    
-    @Query("SELECT n FROM CareerNews n WHERE (n.targetUser = :user OR n.targetUser IS NULL) AND (:category IS NULL OR n.category = :category) ORDER BY n.createdAt DESC")
-    List<CareerNews> findPersonalizedNewsByCategory(@Param("user") User user, @Param("category") String category, Pageable pageable);
-    
-    long countByTargetUser(User user);
-    
-    List<CareerNews> findByTargetUser(User user);
-    
-    long countByTargetUserIsNull();
-    
+
+    List<CareerNews> findByCategoryOrderByCreatedAtDesc(String category, Pageable pageable);
+
+    List<CareerNews> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @Query("SELECT n FROM CareerNews n ORDER BY n.createdAt DESC")
+    List<CareerNews> findPersonalizedNews(Pageable pageable);
+
+    @Query("SELECT n FROM CareerNews n WHERE n.userInterests LIKE %:interest% ORDER BY n.createdAt DESC")
+    List<CareerNews> findByInterestContaining(@Param("interest") String interest, Pageable pageable);
+
+    boolean existsBySourceUrl(String sourceUrl);
+
+    @Query("SELECT n FROM CareerNews n WHERE (:category IS NULL OR n.category = :category) ORDER BY n.createdAt DESC")
+    List<CareerNews> findNewsByCategory(@Param("category") String category, Pageable pageable);
+
+    long count();
+
     List<CareerNews> findByTitleContainingOrOriginalContentContainingOrderByCreatedAtDesc(
         String titleKeyword, String contentKeyword, Pageable pageable);
+
+    List<CareerNews> findByUserInterests(String userInterests, Pageable pageable);
 }

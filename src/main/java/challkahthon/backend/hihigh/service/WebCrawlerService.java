@@ -366,7 +366,7 @@ public class WebCrawlerService {
 
 		List<CareerNews> newsToSave = new ArrayList<>();
 		for (CareerNews news : newsList) {
-			if (!careerNewsRepository.existsBySourceUrlAndTargetUserIsNull(news.getSourceUrl())) {
+			if (!careerNewsRepository.existsBySourceUrl(news.getSourceUrl())) {
 				newsToSave.add(news);
 			}
 		}
