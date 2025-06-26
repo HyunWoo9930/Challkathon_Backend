@@ -33,37 +33,15 @@ public class CareerNews {
     
     private String keywords;
     
-    // 사용자별 맞춤 뉴스를 위한 필드 추가
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User targetUser;
     
-    private String userInterests; // 이 뉴스가 매칭된 사용자 관심사
-    
-    // AI 분석 결과 필드들
-    private Boolean isAiAnalyzed;
-    
-    private Boolean isRelevant;
-    
-    private Boolean categoryMatch;
-    
-    private Double relevanceScore;
-    
-    private String suggestedCategory;
-    
-    private String analysisReason;
+    private String userInterests;
     
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String originalContent;
-    
-    @Lob
-    @Column(columnDefinition = "LONGTEXT")
-    private String translatedContent;
-    
-    @Lob
-    @Column(columnDefinition = "LONGTEXT")
-    private String summary;
     
     private String language;
     
@@ -74,7 +52,6 @@ public class CareerNews {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
-    // 전체 사용자 대상 뉴스인지 확인하는 메서드
     public boolean isGlobalNews() {
         return targetUser == null;
     }

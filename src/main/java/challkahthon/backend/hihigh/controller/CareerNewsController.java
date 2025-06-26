@@ -52,22 +52,4 @@ public class CareerNewsController {
 		}
 		return ResponseEntity.ok(CareerNewsDto.fromEntityWithContent(news));
 	}
-
-	@Operation(
-		summary = "키워드로 뉴스 검색",
-		description = "제목이나 내용에서 키워드를 포함한 뉴스를 검색합니다."
-	)
-	@GetMapping("/search")
-	public ResponseEntity<List<CareerNewsDto>> searchNews(
-		@Parameter(description = "검색 키워드")
-		@RequestParam String keyword,
-		@Parameter(description = "조회할 뉴스 개수")
-		@RequestParam(defaultValue = "20") int size) {
-		
-		List<CareerNews> newsList = careerNewsService.searchNewsByKeyword(keyword, size);
-		List<CareerNewsDto> newsListDto = newsList.stream()
-			.map(CareerNewsDto::fromEntity)
-			.collect(Collectors.toList());
-		return ResponseEntity.ok(newsListDto);
-	}
 }
