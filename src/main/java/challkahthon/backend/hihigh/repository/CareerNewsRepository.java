@@ -56,4 +56,8 @@ public interface CareerNewsRepository extends JpaRepository<CareerNews, Long> {
     
     // 전체 사용자 대상 뉴스 개수 조회
     long countByTargetUserIsNull();
+    
+    // 키워드로 뉴스 검색 (제목 + 내용)
+    List<CareerNews> findByTitleContainingOrOriginalContentContainingOrderByCreatedAtDesc(
+        String titleKeyword, String contentKeyword, Pageable pageable);
 }

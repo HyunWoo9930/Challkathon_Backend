@@ -53,11 +53,12 @@ public class PersonalizedCrawlerService {
     
     /**
      * 모든 사용자를 대상으로 맞춤 뉴스 크롤링 (스케줄링)
+     * 매일 오전 9시에 실행 (한국시간 기준)
      */
-    @Scheduled(fixedRate = 3600000) // 1시간마다 실행
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul") // 매일 오전 9시에 실행 (한국시간)
     @Transactional
     public void crawlPersonalizedNewsForAllUsers() {
-        log.info("개인화 뉴스 크롤링 시작");
+        log.info("=== 일일 개인화 뉴스 크롤링 시작 (매일 오전 9시) ===");
         
         List<User> activeUsers = userRepository.findAll().stream()
                 .filter(user -> user.getInterests() != null && !user.getInterests().trim().isEmpty())
@@ -74,7 +75,7 @@ public class PersonalizedCrawlerService {
             }
         }
         
-        log.info("개인화 뉴스 크롤링 완료");
+        log.info("=== 일일 개인화 뉴스 크롤링 완료 ===");
     }
     
     /**

@@ -32,6 +32,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final CareerNewsService careerNewsService;
     private final PersonalizedCrawlerService personalizedCrawlerService;
+    private final challkahthon.backend.hihigh.service.MainPageService mainPageService;
 
     @Operation(
         summary = "전체 뉴스 조회 (관리자)",
@@ -86,14 +87,14 @@ public class AdminController {
 
     @Operation(
         summary = "전체 사용자 맞춤 크롤링 실행 (관리자)",
-        description = "모든 사용자를 대상으로 맞춤 뉴스 크롤링을 실행합니다."
+        description = "모든 사용자를 대상으로 맞춤 뉴스 크롤링을 실행합니다. 정상적으로는 매일 오전 9시에 자동 실행됩니다."
     )
     @PostMapping("/crawl-all-personalized")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> triggerGlobalPersonalizedCrawling() {
         try {
             careerNewsService.triggerGlobalPersonalizedCrawling();
-            return ResponseEntity.ok("전체 사용자 맞춤 뉴스 크롤링이 시작되었습니다.");
+            return ResponseEntity.ok("전체 사용자 맞춤 뉴스 크롤링이 시작되었습니다. (정기 스케줄: 매일 오전 9시)");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("전체 크롤링 실행 중 오류가 발생했습니다: " + e.getMessage());
         }
@@ -135,6 +136,12 @@ public class AdminController {
                 .filter(news -> news.getIsRelevant() != null && news.getIsRelevant())
                 .count();
             
+            // 크롤링 스케줄 정보
+            Map<String, String> crawlingSchedule = new HashMap<>();
+            crawlingSchedule.put("personalizedCrawling", "매일 오전 9시 (Asia/Seoul)");
+            crawlingSchedule.put("cronExpression", "0 0 9 * * *");
+            crawlingSchedule.put("nextRunTime", "다음 실행: 매일 오전 9시");
+            
             stats.put("totalNews", totalNews);
             stats.put("globalNews", globalNews);
             stats.put("personalizedNews", personalizedNews);
@@ -143,6 +150,7 @@ public class AdminController {
             stats.put("recentNews", recentNews);
             stats.put("analyzedNews", analyzedNews);
             stats.put("relevantNews", relevantNews);
+            stats.put("crawlingSchedule", crawlingSchedule);
             
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
@@ -241,6 +249,97 @@ public class AdminController {
                 username, userNews.size()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("사용자 맞춤 뉴스 삭제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+        summary = "사용자별 맞춤 뉴스 조회 (관리자)",
+        description = "특정 사용자의 맞춤 뉴스와 통계를 조회합니다."
+    )
+    @GetMapping("/users/{username}/personalized-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getUserPersonalizedStats(@PathVariable String username) {
+        try {
+            var stats = careerNewsService.getPersonalizedNewsStats(username);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("사용자 맞춤 뉴스 통계 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+        summary = "관심사 기반 뉴스 검색 (관리자)",
+        description = "특정 사용자의 관심사로 뉴스를 검색합니다."
+    )
+    @GetMapping("/users/{username}/interests-news")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getUserInterestNews(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<CareerNewsDto> interestNews = mainPageService.searchNewsByInterests(username, limit);
+            return ResponseEntity.ok(interestNews);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("관심사 뉴스 검색 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+        summary = "고관련성 뉴스 조회 (관리자)",
+        description = "높은 관련성 점수를 가진 뉴스를 조회합니다."
+    )
+    @GetMapping("/high-relevance-news")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getHighRelevanceNews(
+            @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "0.7") Double minScore,
+            @RequestParam(defaultValue = "20") Integer size) {
+        try {
+            if (username != null) {
+                List<CareerNews> newsList = careerNewsService.getHighRelevanceNews(username, minScore, size);
+                List<CareerNewsDto> newsListDto = newsList.stream()
+                    .map(CareerNewsDto::fromEntity)
+                    .collect(Collectors.toList());
+                return ResponseEntity.ok(newsListDto);
+            } else {
+                // 전체 고관련성 뉴스 조회
+                List<CareerNews> allHighRelevanceNews = careerNewsRepository.findAll().stream()
+                    .filter(news -> news.getRelevanceScore() != null && news.getRelevanceScore() >= minScore)
+                    .sorted((a, b) -> Double.compare(
+                        b.getRelevanceScore() != null ? b.getRelevanceScore() : 0.0,
+                        a.getRelevanceScore() != null ? a.getRelevanceScore() : 0.0
+                    ))
+                    .limit(size)
+                    .collect(Collectors.toList());
+                
+                List<CareerNewsDto> newsListDto = allHighRelevanceNews.stream()
+                    .map(CareerNewsDto::fromEntity)
+                    .collect(Collectors.toList());
+                return ResponseEntity.ok(newsListDto);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("고관련성 뉴스 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    @Operation(
+        summary = "맞춤 뉴스 즉시 갱신 (관리자)",
+        description = "특정 사용자 또는 전체 사용자의 맞춤 뉴스를 즉시 갱신합니다."
+    )
+    @PostMapping("/refresh-personalized")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> refreshPersonalizedNews(
+            @RequestParam(required = false) String username) {
+        try {
+            if (username != null) {
+                careerNewsService.triggerPersonalizedCrawling(username);
+                return ResponseEntity.ok(String.format("사용자 %s의 맞춤 뉴스 갱신이 시작되었습니다.", username));
+            } else {
+                careerNewsService.triggerGlobalPersonalizedCrawling();
+                return ResponseEntity.ok("전체 사용자의 맞춤 뉴스 갱신이 시작되었습니다.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("맞춤 뉴스 갱신 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 }

@@ -131,6 +131,16 @@ public class CareerNewsService {
     }
 
     /**
+     * 키워드로 뉴스 검색
+     */
+    @Transactional(readOnly = true)
+    public List<CareerNews> searchNewsByKeyword(String keyword, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+        return careerNewsRepository.findByTitleContainingOrOriginalContentContainingOrderByCreatedAtDesc(
+            keyword, keyword, pageable);
+    }
+
+    /**
      * 관리자용: 전체 사용자 맞춤 크롤링 수동 실행
      */
     @Transactional

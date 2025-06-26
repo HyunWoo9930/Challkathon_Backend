@@ -16,13 +16,21 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtTokenProvider {
 
-	private final SecretKey jwtSecret = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+	private final SecretKey jwtSecret;
 
 	@Value("${spring.jwt.access.expiration}")
 	private long jwtExpirationInMs;
 
 	@Value("${spring.jwt.refresh.expiration}")
 	private long refreshExpirationInMs;
+
+	@Value("${spring.jwt.secret:mySecretKey123456789012345678901234567890}")
+	private String secretKey;
+
+	public JwtTokenProvider() {
+		// 고정된 시크릿 키 사용 (애플리케이션 재시작 시에도 동일)
+		this.jwtSecret = Keys.hmacShaKeyFor("HiHighSecretKey123456789012345678901234567890HiHighSecretKey".getBytes());
+	}
 
 	/**
 	 * Generate an access token for the given user
@@ -38,6 +46,8 @@ public class JwtTokenProvider {
 			.setIssuedAt(now)
 			.setExpiration(expiryDate)
 			.claim("tokenType", "access")
+			.claim("userId", user.getId())
+			.claim("username", user.getName())
 			.signWith(jwtSecret)
 			.compact();
 	}
@@ -65,6 +75,7 @@ public class JwtTokenProvider {
 			.setIssuedAt(now)
 			.setExpiration(expiryDate)
 			.claim("tokenType", "refresh")
+			.claim("userId", user.getId())
 			.signWith(jwtSecret)
 			.compact();
 	}
@@ -95,12 +106,21 @@ public class JwtTokenProvider {
 
 	public boolean validateToken(String authToken) {
 		try {
-			Jwts.parserBuilder()
+			Claims claims = Jwts.parserBuilder()
 				.setSigningKey(jwtSecret)
 				.build()
-				.parseClaimsJws(authToken);
+				.parseClaimsJws(authToken)
+				.getBody();
+			
+			// 토큰 만료 체크
+			Date expiration = claims.getExpiration();
+			if (expiration.before(new Date())) {
+				return false;
+			}
+			
 			return true;
 		} catch (Exception ex) {
+			// 토큰 파싱 실패 시 false 반환
 			return false;
 		}
 	}
@@ -159,6 +179,40 @@ public class JwtTokenProvider {
 			return expiration.before(new Date());
 		} catch (Exception ex) {
 			return true;
+		}
+	}
+
+	/**
+	 * Get user ID from token
+	 * @param token JWT token
+	 * @return User ID
+	 */
+	public Long getUserIdFromToken(String token) {
+		try {
+			Claims claims = getTokenClaims(token);
+			Object userIdObj = claims.get("userId");
+			if (userIdObj instanceof Integer) {
+				return ((Integer) userIdObj).longValue();
+			} else if (userIdObj instanceof Long) {
+				return (Long) userIdObj;
+			}
+			return null;
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/**
+	 * Get username from token
+	 * @param token JWT token
+	 * @return Username
+	 */
+	public String getUsernameFromToken(String token) {
+		try {
+			Claims claims = getTokenClaims(token);
+			return (String) claims.get("username");
+		} catch (Exception ex) {
+			return null;
 		}
 	}
 }

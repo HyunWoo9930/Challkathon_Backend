@@ -2,17 +2,14 @@ package challkahthon.backend.hihigh.controller;
 
 import challkahthon.backend.hihigh.domain.dto.response.MainPageResponseDto;
 import challkahthon.backend.hihigh.service.MainPageService;
-import challkahthon.backend.hihigh.service.CareerNewsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/main")
@@ -22,65 +19,94 @@ import org.springframework.web.bind.annotation.RestController;
 public class MainPageController {
 
 	private final MainPageService mainPageService;
-	private final CareerNewsService careerNewsService;
 
 	@Operation(
 		summary = "메인 페이지 뉴스 조회",
-		description = "메인 페이지에 표시할 사용자 맞춤 뉴스와 카테고리별 뉴스 목록을 조회합니다."
+		description = "사용자의 관심사 키워드에 기반한 맞춤 뉴스를 키워드별로 분류하여 제공합니다. " +
+		             "관심사가 설정되지 않은 경우 기본 메시지를 반환합니다."
 	)
 	@GetMapping
 	public ResponseEntity<?> getMainPageNews(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-		}
-
-		String username = authentication.getName();
-		
 		try {
-			// 기존 메인페이지 응답 (일반 뉴스)
-			MainPageResponseDto response = mainPageService.getMainPageNews();
-			response.setName(username);
-			
-			// 사용자 맞춤 뉴스 추가
-			var personalizedNews = careerNewsService.getPersonalizedNews(username, null, 5);
-			var personalizedNewsDto = personalizedNews.stream()
-				.map(news -> challkahthon.backend.hihigh.dto.CareerNewsDto.fromEntity(news))
-				.toList();
-			
-			// 응답에 맞춤 뉴스 정보 추가 (기존 구조 유지를 위해 별도 필드로)
-			response.setPersonalizedNews(personalizedNewsDto);
-			response.setHasPersonalizedNews(!personalizedNewsDto.isEmpty());
-			
+			String username = null;
+			if (authentication != null && authentication.isAuthenticated()) {
+				username = authentication.getName();
+			}
+
+			MainPageResponseDto response = mainPageService.getPersonalizedMainPageNews(username);
 			return ResponseEntity.ok(response);
 			
 		} catch (Exception e) {
-			// 오류 발생 시 기본 뉴스라도 반환
-			MainPageResponseDto response = mainPageService.getMainPageNews();
-			response.setName(username);
-			return ResponseEntity.ok(response);
+			// 오류 발생 시 기본 응답
+			return ResponseEntity.ok(MainPageResponseDto.builder()
+				.name("Guest")
+				.message("뉴스를 불러오는 중 문제가 발생했습니다.")
+				.hasPersonalizedNews(false)
+				.build());
 		}
 	}
 
 	@Operation(
-		summary = "관심사 업데이트 후 즉시 크롤링",
-		description = "사용자가 관심사를 업데이트한 후 맞춤 뉴스를 즉시 크롤링합니다."
+		summary = "특정 키워드 뉴스 조회",
+		description = "사용자의 특정 관심사 키워드에 해당하는 뉴스만 조회합니다."
 	)
-	@GetMapping("/refresh-personalized")
-	public ResponseEntity<?> refreshPersonalizedNews(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.badRequest().body("인증되지 않은 사용자입니다.");
-		}
-
-		String username = authentication.getName();
-		
+	@GetMapping("/keyword/{keyword}")
+	public ResponseEntity<?> getNewsByKeyword(
+			Authentication authentication,
+			@Parameter(description = "조회할 키워드", example = "ui") 
+			@PathVariable String keyword,
+			@Parameter(description = "조회할 뉴스 개수", example = "10") 
+			@RequestParam(defaultValue = "10") int limit) {
 		try {
-			// 즉시 크롤링 트리거
-			careerNewsService.triggerPersonalizedCrawling(username);
-			
-			return ResponseEntity.ok("맞춤 뉴스 업데이트가 시작되었습니다. 잠시 후 새로운 뉴스를 확인해주세요.");
+			String username = null;
+			if (authentication != null && authentication.isAuthenticated()) {
+				username = authentication.getName();
+			}
+
+			if (username == null) {
+				return ResponseEntity.ok(MainPageResponseDto.builder()
+					.name("Guest")
+					.message("로그인이 필요한 서비스입니다.")
+					.hasPersonalizedNews(false)
+					.build());
+			}
+
+			MainPageResponseDto response = mainPageService.getNewsBySpecificKeyword(username, keyword, limit);
+			return ResponseEntity.ok(response);
 			
 		} catch (Exception e) {
-			return ResponseEntity.badRequest().body("맞춤 뉴스 업데이트 중 오류가 발생했습니다: " + e.getMessage());
+			return ResponseEntity.ok(MainPageResponseDto.builder()
+				.name("Guest")
+				.message("키워드별 뉴스 조회 중 문제가 발생했습니다.")
+				.hasPersonalizedNews(false)
+				.build());
+		}
+	}
+
+	@Operation(
+		summary = "사용자 관심사 기반 뉴스 검색",
+		description = "관리자용 API: 사용자의 모든 관심사를 기반으로 관련 뉴스를 검색합니다."
+	)
+	@GetMapping("/search")
+	public ResponseEntity<?> searchNewsByInterests(
+			Authentication authentication,
+			@Parameter(description = "조회할 뉴스 개수", example = "20") 
+			@RequestParam(defaultValue = "20") int limit) {
+		try {
+			String username = null;
+			if (authentication != null && authentication.isAuthenticated()) {
+				username = authentication.getName();
+			}
+
+			if (username == null) {
+				return ResponseEntity.badRequest().body("로그인이 필요합니다.");
+			}
+
+			var news = mainPageService.searchNewsByInterests(username, limit);
+			return ResponseEntity.ok(news);
+			
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError().body("뉴스 검색 중 오류가 발생했습니다.");
 		}
 	}
 }

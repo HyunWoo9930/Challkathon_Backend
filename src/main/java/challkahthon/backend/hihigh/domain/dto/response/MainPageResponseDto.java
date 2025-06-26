@@ -15,34 +15,31 @@ import java.util.Map;
 @Builder
 public class MainPageResponseDto {
     private String name;
-    private Map<String, List<NewsItemDto>> newsByCategory;
+    private String message;
     
-    // 사용자 맞춤 뉴스 관련 필드 추가
+    // 사용자 맞춤 뉴스 (전체)
     private List<CareerNewsDto> personalizedNews;
+    
+    // 키워드별로 분류된 뉴스
+    private Map<String, List<CareerNewsDto>> newsByKeyword;
+    
+    // 사용자 키워드 목록
+    private List<String> userKeywords;
+    
+    // 맞춤 뉴스 존재 여부
     private Boolean hasPersonalizedNews;
-    private String personalizedNewsMessage;
     
-    // 기존 생성자와의 호환성을 위한 편의 메서드
-    public static MainPageResponseDto of(String name, Map<String, List<NewsItemDto>> newsByCategory) {
-        return MainPageResponseDto.builder()
-                .name(name)
-                .newsByCategory(newsByCategory)
-                .hasPersonalizedNews(false)
-                .build();
+    // 키워드별 뉴스 통계
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class KeywordNewsStats {
+        private String keyword;
+        private int newsCount;
+        private double averageRelevanceScore;
     }
     
-    public static MainPageResponseDto withPersonalized(
-            String name, 
-            Map<String, List<NewsItemDto>> newsByCategory,
-            List<CareerNewsDto> personalizedNews) {
-        return MainPageResponseDto.builder()
-                .name(name)
-                .newsByCategory(newsByCategory)
-                .personalizedNews(personalizedNews)
-                .hasPersonalizedNews(personalizedNews != null && !personalizedNews.isEmpty())
-                .personalizedNewsMessage(personalizedNews != null && !personalizedNews.isEmpty() 
-                    ? "당신의 관심사에 맞는 뉴스를 찾았습니다!" 
-                    : "관심사를 설정하시면 맞춤 뉴스를 제공해드립니다.")
-                .build();
-    }
+    // 키워드별 통계 정보
+    private List<KeywordNewsStats> keywordStats;
 }
