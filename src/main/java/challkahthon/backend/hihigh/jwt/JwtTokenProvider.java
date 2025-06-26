@@ -28,15 +28,9 @@ public class JwtTokenProvider {
 	private String secretKey;
 
 	public JwtTokenProvider() {
-		// 고정된 시크릿 키 사용 (애플리케이션 재시작 시에도 동일)
 		this.jwtSecret = Keys.hmacShaKeyFor("HiHighSecretKey123456789012345678901234567890HiHighSecretKey".getBytes());
 	}
 
-	/**
-	 * Generate an access token for the given user
-	 * @param user The user for whom to generate the token
-	 * @return The generated access token
-	 */
 	public String generateAccessToken(User user) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
@@ -52,20 +46,10 @@ public class JwtTokenProvider {
 			.compact();
 	}
 
-	/**
-	 * Generate a token for the given user (for backward compatibility)
-	 * @param user The user for whom to generate the token
-	 * @return The generated access token
-	 */
 	public String generateToken(User user) {
 		return generateAccessToken(user);
 	}
 
-	/**
-	 * Generate a refresh token for the given user
-	 * @param user The user for whom to generate the token
-	 * @return The generated refresh token
-	 */
 	public String generateRefreshToken(User user) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + refreshExpirationInMs);
@@ -112,7 +96,6 @@ public class JwtTokenProvider {
 				.parseClaimsJws(authToken)
 				.getBody();
 			
-			// 토큰 만료 체크
 			Date expiration = claims.getExpiration();
 			if (expiration.before(new Date())) {
 				return false;
@@ -120,16 +103,10 @@ public class JwtTokenProvider {
 			
 			return true;
 		} catch (Exception ex) {
-			// 토큰 파싱 실패 시 false 반환
 			return false;
 		}
 	}
 
-	/**
-	 * Get token claims
-	 * @param token JWT token
-	 * @return Claims object containing token information
-	 */
 	public Claims getTokenClaims(String token) {
 		return Jwts.parserBuilder()
 			.setSigningKey(jwtSecret)
@@ -138,41 +115,21 @@ public class JwtTokenProvider {
 			.getBody();
 	}
 
-	/**
-	 * Get token issued at date
-	 * @param token JWT token
-	 * @return Date when token was issued
-	 */
 	public Date getTokenIssuedAt(String token) {
 		Claims claims = getTokenClaims(token);
 		return claims.getIssuedAt();
 	}
 
-	/**
-	 * Get token expiration date
-	 * @param token JWT token
-	 * @return Date when token expires
-	 */
 	public Date getTokenExpiration(String token) {
 		Claims claims = getTokenClaims(token);
 		return claims.getExpiration();
 	}
 
-	/**
-	 * Get token type (access or refresh)
-	 * @param token JWT token
-	 * @return Token type as string
-	 */
 	public String getTokenType(String token) {
 		Claims claims = getTokenClaims(token);
 		return (String)claims.get("tokenType");
 	}
 
-	/**
-	 * Check if token is expired
-	 * @param token JWT token
-	 * @return true if token is expired, false otherwise
-	 */
 	public boolean isTokenExpired(String token) {
 		try {
 			Date expiration = getTokenExpiration(token);
@@ -182,11 +139,6 @@ public class JwtTokenProvider {
 		}
 	}
 
-	/**
-	 * Get user ID from token
-	 * @param token JWT token
-	 * @return User ID
-	 */
 	public Long getUserIdFromToken(String token) {
 		try {
 			Claims claims = getTokenClaims(token);
@@ -202,11 +154,6 @@ public class JwtTokenProvider {
 		}
 	}
 
-	/**
-	 * Get username from token
-	 * @param token JWT token
-	 * @return Username
-	 */
 	public String getUsernameFromToken(String token) {
 		try {
 			Claims claims = getTokenClaims(token);

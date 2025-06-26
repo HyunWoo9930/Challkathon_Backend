@@ -19,8 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider tokenProvider;
-    // private final String redirectUri = "https://hai-jiheeflees-projects.vercel.app/googleLogin";
-    private final String redirectUri = "http://localhost:3000/googleLogin";
+    private final String redirectUri = "https://hai-jiheeflees-projects.vercel.app/googleLogin";
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -30,7 +29,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = userDetails.getUser();
 
         String accessToken = tokenProvider.generateAccessToken(user);
-
         String refreshToken = tokenProvider.generateRefreshToken(user);
 
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)

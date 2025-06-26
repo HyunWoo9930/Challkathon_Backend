@@ -31,12 +31,8 @@ public class ChatGPTUtils {
 		this.chatGPTConfig = chatGPTConfig;
 	}
 
-	/**
-	 * ChatGPT에게 system + user prompt로 요청하고, 응답 content만 String으로 반환
-	 */
 	public String callChatGPT(String systemPrompt, String userPrompt) {
 		try {
-			// 메시지 구성
 			Map<String, String> systemMessage = Map.of(
 				"role", "system",
 				"content", systemPrompt
@@ -47,21 +43,17 @@ public class ChatGPTUtils {
 			);
 			List<Map<String, String>> messages = List.of(systemMessage, userMessage);
 
-			// 요청 본문 구성
 			Map<String, Object> requestBodyMap = new HashMap<>();
 			requestBodyMap.put("model", model);
 			requestBodyMap.put("messages", messages);
 			requestBodyMap.put("max_tokens", 1000);
 			requestBodyMap.put("temperature", 1.0);
 
-			// JSON 문자열로 변환
 			String requestBody = objectMapper.writeValueAsString(requestBodyMap);
 			HttpEntity<String> entity = new HttpEntity<>(requestBody, chatGPTConfig.httpHeaders());
 
-			// API 호출
 			ChatGPTResponseDTO response = restTemplate.postForObject(apiURL, entity, ChatGPTResponseDTO.class);
 
-			// 응답 파싱
 			return response.getChoices().get(0).getMessage().getContent();
 		} catch (Exception e) {
 			e.printStackTrace();
